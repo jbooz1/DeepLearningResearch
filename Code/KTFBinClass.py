@@ -2,6 +2,8 @@ import numpy as np
 import pandas
 import sklearn
 import random
+import time
+import timeit
 from keras import losses
 from keras import optimizers
 from keras.models import Sequential
