@@ -10,6 +10,8 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.utils import compute_class_weight
+
 
 def main():
 
@@ -44,28 +46,36 @@ def main():
     '''
     print "Grid Search for Binary Decreasing Layers"
     grid_search_EpochBatch("binaryDecrease", features, labels)
-    '''
+    
     print("Grid Search for Four equal Layers")
     grid_search_EpochBatch("fourSame", features, labels)
     print("Grid Search for Four Decr Layers")
     grid_search_EpochBatch("fourDecr", features, labels)
-
+    '''
     return 0
 
 
 def grid_search_EpochBatch(modelName, features, labels):
-    epochs = [1]
+
+    # This is for computing class weight
+    classes = [0, 1]
+    class_weight = compute_class_weight("balanced", classes, labels)
+    print(class_weight)
+    test_ratio = .8
+    percent = (1-test_ratio)*100
+
+    epochs = [16]
     batch_size = [10]
-    test_ratio= .8
-    neurons = [100, 200, 300, 400, 500, 1000, 2000, 3000, 4000, 5000, 7500, 10000, 12500, 15000]
+    neurons = [45]
     optimizer = ['Nadam']
-    #weight_constraint = [1, 2, 3, 4, 5]
-    #dropout_rate = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    #lr = [.0005, .001, .002, .003, .004, .005, .006, .007, .008, .009]
+    weight_constraint = [3, 4, 5]
+    dropout_rate = [0, 0.1, 0.2, 0.3]
 
-    paramGrid = dict(epochs=epochs, batch_size=batch_size, optimizer=optimizer, neurons=neurons)
+    paramGrid = dict(epochs=epochs, batch_size=batch_size, optimizer=optimizer,
+                     dropout_rate=dropout_rate, weight_constraint=weight_constraint,
+                     neurons=neurons)
 
-    if modelName == "oneLayer" :
+    if modelName == "oneLayer":
         model = KerasClassifier(build_fn=create_one_layer, verbose=0)
     elif modelName == "binaryDecrease":
         model = KerasClassifier(build_fn=create_binaryDecrease, verbose=0)
@@ -76,7 +86,7 @@ def grid_search_EpochBatch(modelName, features, labels):
 
     sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
     grid = GridSearchCV(estimator=model, param_grid=paramGrid, n_jobs=1, cv=sss, refit=True, verbose=2)
-    grid_fit = grid.fit(features, labels)
+    grid_fit = grid.fit(features, labels, class_weight=class_weight)
 
     means = grid_fit.cv_results_['mean_test_score']
     stds = grid_fit.cv_results_['std_test_score']
@@ -86,7 +96,7 @@ def grid_search_EpochBatch(modelName, features, labels):
 
     df = pandas.DataFrame(grid_fit.cv_results_)
     try:
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/epochBatch' + modelName + '.csv'
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/dropWeight16epoch' + percent + modelName + '.csv'
         file1 = open(path1, "w+")
     except IOError:
         path1 = "gridSearch" + modelName + ".csv"
