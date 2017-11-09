@@ -4,13 +4,13 @@ import timeit
 
 from keras.constraints import maxnorm
 from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import Dropout
+from keras.layers import Dense, Dropout
 from keras.wrappers.scikit_learn import KerasClassifier
-from sklearn.model_selection import StratifiedShuffleSplit
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import StratifiedShuffleSplit, cross_validate, GridSearchCV
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils import compute_class_weight
+from sklearn.metrics import precision_score, recall_score, f1_score
+
 
 
 def main():
@@ -41,17 +41,65 @@ def main():
     print("Done Vectorizing Data")
     #print 'ouput: train_ratio, epochs, batch_size, avg_acc, avg_true_pos, avg_true_neg, avg_fpos_rate, avg_fneg_rate, avg_train_time, avg_test_time'
 
+    # Used for grid searching
+    '''
     print ("Grid Search for One Layer")
     grid_search_EpochBatch("oneLayer", features, labels)
-    '''
     print "Grid Search for Binary Decreasing Layers"
     grid_search_EpochBatch("binaryDecrease", features, labels)
-    
     print("Grid Search for Four equal Layers")
     grid_search_EpochBatch("fourSame", features, labels)
     print("Grid Search for Four Decr Layers")
     grid_search_EpochBatch("fourDecr", features, labels)
     '''
+    #for i in [.8, .2]:
+    for i in [.6, .4]:
+        full_run("oneLayer", features, labels, i)
+        full_run("fourSame", features, labels, i)
+        full_run("fourDecr", features, labels, i)
+
+    return 0
+
+
+def full_run(modelName, features, labels, test_ratio):
+    epochs=16
+    batch_size=10
+    neurons=45
+    optimizer='Nadam'
+    weight_constraint=5
+    dropout_rate=0.1
+    percent = 1 - test_ratio
+
+    model_params=dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate)
+    fit_params=dict(batch_size=batch_size, epochs=epochs)
+    scoring=['accuracy', 'precision', 'recall', 'f1']
+
+    if modelName == "oneLayer":
+        model = KerasClassifier(build_fn=create_one_layer, batch_size=batch_size, epochs=epochs, neurons=neurons,
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+    elif modelName == "binaryDecrease":
+        model = KerasClassifier(build_fn=create_binaryDecrease, batch_size=batch_size, epochs=epochs, neurons=neurons,
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+    elif modelName == "fourSame":
+        model = KerasClassifier(build_fn=create_fourSameLayer, batch_size=batch_size, epochs=epochs, neurons=neurons,
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+    elif modelName == "fourDecr":
+        model = KerasClassifier(build_fn=create_fourDecrLayer, batch_size=batch_size, epochs=epochs, neurons=neurons,
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+
+    sss = StratifiedShuffleSplit(n_splits=5, test_size=test_ratio, random_state=0)
+    cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True, scoring=scoring, verbose=2)
+
+    df = pandas.DataFrame(cv_result)
+    try:
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
+        file1 = open(path1, "a+")
+    except:
+        path1 = "gridSearch" + modelName + ".csv"
+        file1 = open(path1, "a+")
+    df.to_csv(file1, index=True)
+    file1.close()
+
     return 0
 
 
@@ -86,7 +134,7 @@ def grid_search_EpochBatch(modelName, features, labels):
 
     sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
     grid = GridSearchCV(estimator=model, param_grid=paramGrid, n_jobs=1, cv=sss, refit=True, verbose=2)
-    grid_fit = grid.fit(features, labels, class_weight=class_weight)
+    grid_fit = grid.fit(features, labels)
 
     means = grid_fit.cv_results_['mean_test_score']
     stds = grid_fit.cv_results_['std_test_score']
@@ -96,9 +144,9 @@ def grid_search_EpochBatch(modelName, features, labels):
 
     df = pandas.DataFrame(grid_fit.cv_results_)
     try:
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/dropWeight16epoch' + percent + modelName + '.csv'
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/noClassWeightDropout16epoch' + modelName + '.csv'
         file1 = open(path1, "w+")
-    except IOError:
+    except:
         path1 = "gridSearch" + modelName + ".csv"
         file1=open(path1, "w+")
     df.to_csv(file1, index=True)
