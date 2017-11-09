@@ -188,7 +188,7 @@ def create_fourSameLayer(neurons=25, optimizer='adam', dropout_rate=0.0, weight_
 def create_fourDecrLayer(neurons=25, optimizer='adam', dropout_rate=0.0, weight_constraint=0):
     #baseline Model
     model = Sequential()
-    n2 = neurons//2 if neurons//2 > 0 else 1
+    n2 = neurons // 2 if neurons // 2 > 0 else 1
     n3 = neurons // 3 if neurons // 3 > 0 else 1
     n4 = neurons // 4 if neurons // 4 > 0 else 1
     #The first param in Dense is the number of neurons in the first hidden layer
