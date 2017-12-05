@@ -1,5 +1,6 @@
 import pandas
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
 from pylab import meshgrid
@@ -44,21 +45,23 @@ def main():
     SGD_neurons = SGD_df.get("param_neurons")
     SGD_score = SGD_df.get("mean_test_score")
 
+
+
     #create line for each optimizer
-    adadelta = plt.plot(adadelta_neurons, adadelta_score, label='adadelta')
-    adamax = plt.plot(adamax_neurons, adamax_score, label='adamax')
-    adam = plt.plot(adam_neurons, adam_score, label='adam')
-    nadam = plt.plot(nadam_neurons, nadam_score, label='nadam')
-    RMSprop = plt.plot(RMS_neurons, RMS_score, label='RMSprop')
-    SGD = plt.plot(SGD_neurons, SGD_score, label='SGD')
+    adadelta = plt.plot(adadelta_neurons, adadelta_score, marker='*', markersize=16, label='adadelta')
+    adamax = plt.plot(adamax_neurons, adamax_score ,marker='o', markersize=16, label='adamax')
+    adam = plt.plot(adam_neurons, adam_score, marker='v', markersize=16, label='adam')
+    nadam = plt.plot(nadam_neurons, nadam_score, marker='^', markersize=16, label='nadam')
+    RMSprop = plt.plot(RMS_neurons, RMS_score, marker='s', markersize=16, label='RMSprop')
+    SGD = plt.plot(SGD_neurons, SGD_score, marker='p', markersize=16, label='SGD')
 
     #plot formatting
-    plt.legend(loc='upper left', fontsize = 16)
+    plt.legend(loc='upper left', fontsize = 20)
     plt.ylim([.92, .95])
-    plt.title('One Layer Model - Optimizer and Neurons', fontsize=28)
-    plt.xlabel('Neurons', fontsize = 22)
-    plt.ylabel('Accuracy', fontsize = 22)
-    plt.tick_params(labelsize=16)
+    #plt.title('One Layer Model - Optimizer and Neurons', fontsize=28)
+    plt.xlabel('Neurons', fontsize = 26)
+    plt.ylabel('Accuracy', fontsize = 26)
+    plt.tick_params(labelsize=20)
     #plt.legend([adadelta, adamax, adam, RMSprop, SGD]) #['adadelta', 'adamax', 'adam','nadam', 'RMSprop,', 'SGD'])
 
 

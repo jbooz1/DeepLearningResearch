@@ -26,17 +26,17 @@ def main():
     oneLayer_ratios = oneLayer_df.get("Ratio")
     oneLayer_acc = oneLayer_df.get("test_accuracy")
 
-    fourSame = plt.plot(fourSame_ratios, fourSame_acc, label='Four Same Size')
-    fourDec = plt.plot(fourDec_ratios, fourDec_acc, label='Four Decreasing Size')
-    oneLayer = plt.plot(oneLayer_ratios, oneLayer_acc, label='One Layer')
+    fourSame = plt.plot(fourSame_ratios, fourSame_acc, marker='s', markersize=14, label='Four Same Size')
+    fourDec = plt.plot(fourDec_ratios, fourDec_acc, marker='o', markersize=14, label='Four Decreasing Size')
+    oneLayer = plt.plot(oneLayer_ratios, oneLayer_acc, marker='^', markersize=14, label='One Layer')
 
     #plot formatting
-    plt.legend(loc='upper left', fontsize = 16)
+    plt.legend(loc='upper left', fontsize = 20)
     plt.ylim([.9,1.0])
-    plt.title('Training Ratio and Accuracy', fontsize = 28)
-    plt.xlabel('Training Ratio', fontsize = 22)
-    plt.ylabel('Accuracy', fontsize = 22)
-    plt.tick_params(labelsize=16)
+    #plt.title('Training Ratio and Accuracy', fontsize = 28)
+    plt.xlabel('Training Ratio', fontsize = 26)
+    plt.ylabel('Accuracy', fontsize = 26)
+    plt.tick_params(labelsize=20)
     plt.grid()
 
     plt.show()

@@ -26,17 +26,17 @@ def main():
     oneLayer_neurons = oneLayer_df.get("Neurons")
     oneLayer_time = oneLayer_df.get("Time")
 
-    fourSame = plt.plot(fourSame_neurons, fourSame_time, label='Four Same Size')
-    fourDec = plt.plot(fourDec_neurons, fourDec_time, label='Four Decreasing Size')
-    oneLayer = plt.plot(oneLayer_neurons, oneLayer_time, label='One Layer')
+    fourSame = plt.plot(fourSame_neurons, fourSame_time, marker='s', markersize=14, label='Four Same Size')
+    fourDec = plt.plot(fourDec_neurons, fourDec_time, marker='o', markersize=14, label='Four Decreasing Size')
+    oneLayer = plt.plot(oneLayer_neurons, oneLayer_time, marker='^', markersize=14, label='One Layer')
 
     #plot formatting
-    plt.legend(loc='upper left', fontsize = 16)
+    plt.legend(loc='upper left', fontsize = 20)
     plt.ylim([0,500])
-    plt.title('Number of Neurons and Training Time', fontsize = 28)
-    plt.xlabel('Neurons', fontsize = 22)
-    plt.ylabel('Time', fontsize = 22)
-    plt.tick_params(labelsize=16)
+    #plt.title('Number of Neurons and Training Time', fontsize = 28)
+    plt.xlabel('Neurons', fontsize = 26)
+    plt.ylabel('Time', fontsize = 26)
+    plt.tick_params(labelsize=20)
     plt.grid()
 
     plt.show()
