@@ -11,8 +11,6 @@ from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils import compute_class_weight
 from sklearn.metrics import precision_score, recall_score, f1_score
 
-
-
 def main():
 
     good_path = './Data/goodPermissionsFinal.txt'
@@ -30,6 +28,23 @@ def main():
         labels = np.append(labels, 0)
     for x in mlprm:
         labels = np.append(labels, 1)
+
+    full = np.append(perms, labels, axis=1)
+    np.random.seed(0)
+    np.random.shuffle(full)
+    copyLabels = full[:, -1]
+    size = np.size(copyLabels)
+    adverse = np.array([])
+
+    for x in range(0, size//10):
+        if copyLabels[x] == 0:
+            adverse = np.append(adverse, 1)
+        else:
+            adverse = np.abs(adverse, 1)
+
+    for x in range(size//10 + 1, size):
+        adverse = np.append(adverse, copyLabels[x])
+
 
     count_vect = CountVectorizer(input=u'content', analyzer=u'word', token_pattern='(\\b(:?uses-|optional-)?permission:\s[^\s]*)')
     time0 = timeit.default_timer()
