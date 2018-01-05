@@ -1,6 +1,7 @@
 import numpy as np
 import pandas
 import timeit
+import sys
 
 from keras.constraints import maxnorm
 from keras.models import Sequential
@@ -10,6 +11,7 @@ from sklearn.model_selection import StratifiedShuffleSplit, cross_validate, Grid
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils import compute_class_weight
 from sklearn.metrics import precision_score, recall_score, f1_score
+
 
 def main():
 
@@ -29,21 +31,6 @@ def main():
     for x in mlprm:
         labels = np.append(labels, 1)
 
-    full = np.append(perms, labels, axis=1)
-    np.random.seed(0)
-    np.random.shuffle(full)
-    copyLabels = full[:, -1]
-    size = np.size(copyLabels)
-    adverse = np.array([])
-
-    for x in range(0, size//10):
-        if copyLabels[x] == 0:
-            adverse = np.append(adverse, 1)
-        else:
-            adverse = np.abs(adverse, 1)
-
-    for x in range(size//10 + 1, size):
-        adverse = np.append(adverse, copyLabels[x])
 
 
     count_vect = CountVectorizer(input=u'content', analyzer=u'word', token_pattern='(\\b(:?uses-|optional-)?permission:\s[^\s]*)')
@@ -55,6 +42,49 @@ def main():
 
     print("Done Vectorizing Data")
     #print 'ouput: train_ratio, epochs, batch_size, avg_acc, avg_true_pos, avg_true_neg, avg_fpos_rate, avg_fneg_rate, avg_train_time, avg_test_time'
+
+    if sys.argv[1] == 'adverse':
+        print("Adversarial Learning")
+        count1=0
+        count2=0
+        gdprmsize = np.size(gdprm, 0)
+        mlprmszie = np.size(mlprm, 0)
+        for i in range(0, gdprmsize//10):
+            if labels[i] == 0 :
+                count1 += 1
+                labels[i] = 1
+        print("Good Permissions Changed: %d" % count1)
+        for i in range(gdprmsize, gdprmsize+mlprmszie//10):
+            if labels[i] == 1 :
+                count2 += 1
+                labels[i] = 0
+        print("Malware Permissions Changed: %d" % count2)
+        print("Total Permissions Changed: %d" % count1+count2)
+
+
+    # if sys.argv[1] == 'adverse':
+    #     print("Adversarial Learning")
+    #     full = np.concatenate((perms, labels))
+    #     np.random.seed(0)
+    #     np.random.shuffle(full)
+    #     copyLabels = full[:, -1]
+    #     size = np.size(copyLabels)
+    #     adverse = np.array([])
+    #
+    #     for x in range(0, size // 10):
+    #         if copyLabels[x] == 0:
+    #             adverse = np.append(adverse, 1)
+    #         else:
+    #             adverse = np.append(adverse, 1)
+    #
+    #     for x in range(size // 10 + 1, size):
+    #         adverse = np.append(adverse, copyLabels[x])
+    #
+    #     for i in [.2]:
+    #         full_run("oneLayer", features, adverse, i)
+    #         full_run("fourSame", features, adverse, i)
+    #         full_run("fourDecr", features, adverse, i)
+
 
     # Used for grid searching
     '''
@@ -68,7 +98,8 @@ def main():
     grid_search_EpochBatch("fourDecr", features, labels)
     '''
     #for i in [.8, .2]:
-    for i in [.6, .4]:
+    #for i in [.6, .4]:
+    for i in [.8]:
         full_run("oneLayer", features, labels, i)
         full_run("fourSame", features, labels, i)
         full_run("fourDecr", features, labels, i)
@@ -102,15 +133,17 @@ def full_run(modelName, features, labels, test_ratio):
         model = KerasClassifier(build_fn=create_fourDecrLayer, batch_size=batch_size, epochs=epochs, neurons=neurons,
                                 optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
 
-    sss = StratifiedShuffleSplit(n_splits=5, test_size=test_ratio, random_state=0)
+    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
     cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True, scoring=scoring, verbose=2)
 
     df = pandas.DataFrame(cv_result)
     try:
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
+        #path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/adverse/' + str(percent) + modelName + '.csv'
         file1 = open(path1, "a+")
     except:
-        path1 = "gridSearch" + modelName + ".csv"
+        #path1 = "gridSearch" + modelName + ".csv"
+        path1 = "adverse" + modelName + ".csv"
         file1 = open(path1, "a+")
     df.to_csv(file1, index=True)
     file1.close()
