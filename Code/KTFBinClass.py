@@ -13,37 +13,70 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-gp", "--good_path", help="Good File Path")
+    parser.add_argument("-mp", "--mal_path", help="Malware File Path")
+    parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
+    parser.add_argument("-m", "--mode", help="Choose mode: full, grid")
+    parser.add_argument("-e", "--epochs", help="Number of Epochs")
+    parser.add_argument("-tr", "--test_ratio", nargs="+", type=int,
+                        help="Set Test Ratios. Enter as a percent (20,40,60,80). Can be a list space delimited")
+    parser.add_argument("-model", "--model", help="Select which model to run: all, one_layer, four_decr, four_same")
 
-   parser = argparse.ArgumentParser()
-   parser.add_argument("-gp", "--good_path", help="Good File Path")
-   parser.add_argument("-mp", "--mal_path", help="Malware File Path")
-   parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
+    args = parser.parse_args()
 
-   args = parser.parse_args()
+    if args.good_path:
+        good_path = args.good_path
+    else:
+        print("Needs Good Path with -gp or --good_path")
+        sys.exit()
 
-   if args.good_path :
-       good_path = args.good_path
-   else :
-       print("Needs Good Path with -gp or --good_path")
-       sys.exit()
-
-   if args.mal_path :
+    if args.mal_path:
         mal_path = args.mal_path
-   else :
-       print("Needs Malware Path with -mp or --mal_path")
-       sys.exit()
-   if args.adverse :
-       adverse = True
-   else :
-       adverse = False
+    else:
+        print("Needs Malware Path with -mp or --mal_path")
+        sys.exit()
 
-   features, labels = vectorize(good_path, mal_path, adverse )
+    if args.adverse:
+        adverse = True
+    else:
+        adverse = False
 
-   return 0
+    if args.mode == "grid":
+        mode = "grid"
+        print("Mode is %s" % mode)
+    else:
+        mode = "full"
+        print("Mode is %s" % mode)
+
+    if args.model == "all" :
+        model = ["one_layer", "four_decr", "four_same"]
+    elif args.model in ["one_layer", "four_decr", "four_same"] :
+        model = args.model
+    else :
+        print("Defaulting to All models")
+        model = ["one_layer", "four_decr", "four_same"]
+
+    if args.test_ratio :
+        ratios = args.test_ratio
+    else :
+        print("Defaulting to testing all ratios")
+        ratios = [20,40,60,80]
+
+    features, labels = vectorize(good_path, mal_path, adverse)
+    if mode == "grid" :
+        for m in model :
+            grid_search_EpochBatch(m, features, labels)
+            
+    if mode == "full" :
+        for m in model :
+            for r in ratios :
+                full_run(m, features, labels, r)
+
+    return 0
 
 
 def vectorize(good_path, mal_path, adverse):
-
     good_path = './Data/goodPermissionsFinal.txt'
     mal_path = './Data/malwarePermissionsFinal.txt'
 
@@ -67,7 +100,7 @@ def vectorize(good_path, mal_path, adverse):
     features = features.todense()
     features = np.array(features)
 
-    if adverse :
+    if adverse:
         print("Adversarial Learning")
         count1 = 0
         count2 = 0
@@ -89,44 +122,48 @@ def vectorize(good_path, mal_path, adverse):
     return features, labels
 
 
-
-
 def full_run(modelName, features, labels, test_ratio):
-    epochs=16
-    batch_size=10
-    neurons=45
-    optimizer='Nadam'
-    weight_constraint=5
-    dropout_rate=0.1
+    epochs = 16
+    batch_size = 10
+    neurons = 45
+    optimizer = 'Nadam'
+    weight_constraint = 5
+    dropout_rate = 0.1
     percent = 1 - test_ratio
 
-    model_params=dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate)
-    fit_params=dict(batch_size=batch_size, epochs=epochs)
-    scoring=['accuracy', 'precision', 'recall', 'f1']
+    model_params = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer,
+                        weight_constraint=weight_constraint, dropout_rate=dropout_rate)
+    fit_params = dict(batch_size=batch_size, epochs=epochs)
+    scoring = ['accuracy', 'precision', 'recall', 'f1']
 
     if modelName == "oneLayer":
         model = KerasClassifier(build_fn=create_one_layer, batch_size=batch_size, epochs=epochs, neurons=neurons,
-                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate,
+                                verbose=2)
     elif modelName == "binaryDecrease":
         model = KerasClassifier(build_fn=create_binaryDecrease, batch_size=batch_size, epochs=epochs, neurons=neurons,
-                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate,
+                                verbose=2)
     elif modelName == "fourSame":
         model = KerasClassifier(build_fn=create_fourSameLayer, batch_size=batch_size, epochs=epochs, neurons=neurons,
-                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate,
+                                verbose=2)
     elif modelName == "fourDecr":
         model = KerasClassifier(build_fn=create_fourDecrLayer, batch_size=batch_size, epochs=epochs, neurons=neurons,
-                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate, verbose=2)
+                                optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate,
+                                verbose=2)
 
     sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
-    cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True, scoring=scoring, verbose=2)
+    cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True,
+                               scoring=scoring, verbose=2)
 
     df = pandas.DataFrame(cv_result)
     try:
-        #path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
+        # path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
         path1 = '/home/lab309/pythonScripts/testResults/deep_results/adverse/' + str(percent) + modelName + '.csv'
         file1 = open(path1, "a+")
     except:
-        #path1 = "gridSearch" + modelName + ".csv"
+        # path1 = "gridSearch" + modelName + ".csv"
         path1 = "adverse" + modelName + ".csv"
         file1 = open(path1, "a+")
     df.to_csv(file1, index=True)
@@ -136,13 +173,12 @@ def full_run(modelName, features, labels, test_ratio):
 
 
 def grid_search_EpochBatch(modelName, features, labels):
-
     # This is for computing class weight
     classes = [0, 1]
     class_weight = compute_class_weight("balanced", classes, labels)
     print(class_weight)
     test_ratio = .8
-    percent = (1-test_ratio)*100
+    percent = (1 - test_ratio) * 100
 
     epochs = [16]
     batch_size = [10]
@@ -180,14 +216,12 @@ def grid_search_EpochBatch(modelName, features, labels):
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
-        file1=open(path1, "w+")
+        file1 = open(path1, "w+")
     df.to_csv(file1, index=True)
     file1.close()
 
     return 0
 
 
-
 if __name__ == "__main__":
     main()
-
