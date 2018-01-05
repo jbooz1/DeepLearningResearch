@@ -3,6 +3,7 @@ import pandas
 import timeit
 import sys
 import argparse
+import datetime
 
 from .keras_models import create_binaryDecrease, create_fourDecrLayer, create_fourSameLayer, create_one_layer
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -13,65 +14,19 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-gp", "--good_path", help="Good File Path")
-    parser.add_argument("-mp", "--mal_path", help="Malware File Path")
-    parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
-    parser.add_argument("-m", "--mode", help="Choose mode: full, grid")
-    parser.add_argument("-e", "--epochs", help="Number of Epochs")
-    parser.add_argument("-tr", "--test_ratio", nargs="+", type=int,
-                        help="Set Test Ratios. Enter as a percent (20,40,60,80). Can be a list space delimited")
-    parser.add_argument("-model", "--model", help="Select which model to run: all, one_layer, four_decr, four_same")
 
-    args = parser.parse_args()
+    args = parse_arguments()
 
-    if args.good_path:
-        good_path = args.good_path
-    else:
-        print("Needs Good Path with -gp or --good_path")
-        sys.exit()
+    features, labels = vectorize(args["good_path"], args["mal_path"], args["adverse"])
+    if args["mode"] == "grid" :
+        for m in args["model"] :
+            for r in args["test_ratio"] :
+                grid_search_EpochBatch(m, features, labels, r//100, args)
 
-    if args.mal_path:
-        mal_path = args.mal_path
-    else:
-        print("Needs Malware Path with -mp or --mal_path")
-        sys.exit()
-
-    if args.adverse:
-        adverse = True
-    else:
-        adverse = False
-
-    if args.mode == "grid":
-        mode = "grid"
-        print("Mode is %s" % mode)
-    else:
-        mode = "full"
-        print("Mode is %s" % mode)
-
-    if args.model == "all" :
-        model = ["one_layer", "four_decr", "four_same"]
-    elif args.model in ["one_layer", "four_decr", "four_same"] :
-        model = args.model
     else :
-        print("Defaulting to All models")
-        model = ["one_layer", "four_decr", "four_same"]
-
-    if args.test_ratio :
-        ratios = args.test_ratio
-    else :
-        print("Defaulting to testing all ratios")
-        ratios = [20,40,60,80]
-
-    features, labels = vectorize(good_path, mal_path, adverse)
-    if mode == "grid" :
-        for m in model :
-            grid_search_EpochBatch(m, features, labels)
-            
-    if mode == "full" :
-        for m in model :
-            for r in ratios :
-                full_run(m, features, labels, r)
+        for m in args["model"] :
+            for r in args["test_ratio"] :
+                full_run(m, features, labels, r//100, args)
 
     return 0
 
@@ -122,14 +77,14 @@ def vectorize(good_path, mal_path, adverse):
     return features, labels
 
 
-def full_run(modelName, features, labels, test_ratio):
-    epochs = 16
-    batch_size = 10
-    neurons = 45
-    optimizer = 'Nadam'
-    weight_constraint = 5
-    dropout_rate = 0.1
-    percent = 1 - test_ratio
+def full_run(modelName, features, labels, test_ratio, args):
+    epochs = args["epochs"]
+    batch_size = args["batch_size"]
+    neurons = args["neurons"]
+    optimizer = args["optimizer"]
+    weight_constraint = args["weight_constraint"]
+    dropout_rate = args["dropout"]//100
+    percent = (1 - test_ratio) * 100
 
     model_params = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer,
                         weight_constraint=weight_constraint, dropout_rate=dropout_rate)
@@ -157,10 +112,16 @@ def full_run(modelName, features, labels, test_ratio):
     cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True,
                                scoring=scoring, verbose=2)
 
+    d = datetime.date.today()
+    month = str( '%02d' % d.month)
+    day = str('%02d' % d.day)
+    hour = str('%02d' % d.hour)
+    min = str('%02d' % d.minute)
+
     df = pandas.DataFrame(cv_result)
     try:
         # path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/adverse/' + str(percent) + modelName + '.csv'
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/' + modelName + month + day + hour + min + '.csv'
         file1 = open(path1, "a+")
     except:
         # path1 = "gridSearch" + modelName + ".csv"
@@ -172,13 +133,12 @@ def full_run(modelName, features, labels, test_ratio):
     return 0
 
 
-def grid_search_EpochBatch(modelName, features, labels):
+def grid_search_EpochBatch(modelName, features, labels, test_ratio, args):
     # This is for computing class weight
     classes = [0, 1]
     class_weight = compute_class_weight("balanced", classes, labels)
     print(class_weight)
-    test_ratio = .8
-    percent = (1 - test_ratio) * 100
+    percent = 1 - test_ratio
 
     epochs = [16]
     batch_size = [10]
@@ -210,9 +170,16 @@ def grid_search_EpochBatch(modelName, features, labels):
 
     print("%s Best: %f using %s" % (modelName, grid_fit.best_score_, grid_fit.best_params_))
 
+    d = datetime.date.today()
+    month = str( '%02d' % d.month)
+    day = str('%02d' % d.day)
+    hour = str('%02d' % d.hour)
+    min = str('%02d' % d.minute)
+
+
     df = pandas.DataFrame(grid_fit.cv_results_)
     try:
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/noClassWeightDropout16epoch' + modelName + '.csv'
+        path1 = '/home/lab309/pythonScripts/testResults/deep_results/gridSearch' + modelName + month + day + hour + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
@@ -221,6 +188,113 @@ def grid_search_EpochBatch(modelName, features, labels):
     file1.close()
 
     return 0
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-gp", "--good_path", help="Good File Path")
+    parser.add_argument("-mp", "--mal_path", help="Malware File Path")
+    parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
+    parser.add_argument("-m", "--mode", help="Choose mode: full, grid")
+    parser.add_argument("-e", "--epochs", help="Number of Epochs")
+    parser.add_argument("-tr", "--test_ratio", nargs="*", type=int,
+                        help="Set Test Ratios. Enter as a percent (20,40,60,80). Can be a list space delimited")
+    parser.add_argument("-bs", "--batch_size", nargs="*", type=int,
+                        help="Batch size. Can be a list space delimited")
+    parser.add_argument("-n", "--neurons", nargs="*", type=int,
+                        help="Number of Neurons. Can be a list space delimited")
+    parser.add_argument("-o", "--optimizer", nargs="*",
+                        help="Optimizers. Can be a list space delimited")
+    parser.add_argument("-w", "--weight_constraint", nargs="*", type=int,
+                        help="Weight Constraint. Can be a list space delimited")
+    parser.add_argument("-d", "--dropout", nargs="*", type=int,
+                        help="Dropout. Enter as percent (10,20,30,40...). Can be a list space delimited.")
+    parser.add_argument("-model", "--model", help="Select which model to run: all, one_layer, four_decr, four_same")
+
+    args = parser.parse_args()
+
+    arguments = {}
+
+    if args.good_path:
+        good_path = args.good_path
+        arguments["good_path"] = good_path
+    else:
+        print("Needs Good Path with -gp or --good_path")
+        sys.exit()
+
+    if args.mal_path:
+        mal_path = args.mal_path
+        arguments["mal_path"] = mal_path
+    else:
+        print("Needs Malware Path with -mp or --mal_path")
+        sys.exit()
+
+    if args.adverse:
+        adverse = True
+    else:
+        adverse = False
+    arguments["adverse"] = adverse
+
+    if args.mode == "grid":
+        mode = "grid"
+        print("Mode is %s" % mode)
+    else:
+        mode = "full"
+        print("Mode is %s" % mode)
+    arguments["mode"] = mode
+
+    if args.model == "all":
+        model = ["one_layer", "four_decr", "four_same"]
+    elif args.model in ["one_layer", "four_decr", "four_same"]:
+        model = args.model
+    else:
+        print("Defaulting to All models")
+        model = ["one_layer", "four_decr", "four_same"]
+    arguments["model"] = model
+
+    if args.test_ratio:
+        test_ratio = args.test_ratio
+    else:
+        print("Defaulting to testing all ratios")
+        test_ratio = [20, 40, 60, 80]
+    arguments["test_ratio"] = test_ratio
+
+    if args.batch_size:
+        batch_size = args.batch_size
+    else:
+        print("Defaulting to Batch Size 10")
+        batch_size = 10
+    arguments["batch_size"] = batch_size
+
+    if args.neurons:
+        neurons = args.neurons
+    else:
+        print("Defaulting to 45 Neurons")
+        neurons = 45
+    arguments["neurons"] = neurons
+
+    if args.optimzer:
+        optimizer = args.optimzer
+    else:
+        print("Defaulting to NADAM Optimizer")
+        optimizer = "Nadam"
+    arguments["optimizer"] = optimizer
+
+    if args.weight_constraint:
+        weight_constraint = args.weight_constraint
+    else:
+        print("Defaulting to weight constraint 5")
+        weight_constraint = 5
+    arguments["weight_constraint"] = weight_constraint
+
+    if args.dropout:
+        dropout = args.dropout
+    else:
+        print("Defaulting to dropout of 10%")
+        dropout = 10
+    arguments["dropout"] = dropout
+
+    return arguments
 
 
 if __name__ == "__main__":
