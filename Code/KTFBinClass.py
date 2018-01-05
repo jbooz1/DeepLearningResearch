@@ -2,6 +2,7 @@ import numpy as np
 import pandas
 import timeit
 import sys
+import argparse
 
 from .keras_models import create_binaryDecrease, create_fourDecrLayer, create_fourSameLayer, create_one_layer
 from keras.wrappers.scikit_learn import KerasClassifier
@@ -11,8 +12,37 @@ from sklearn.utils import compute_class_weight
 from sklearn.metrics import precision_score, recall_score, f1_score
 
 
-
 def main():
+
+   parser = argparse.ArgumentParser()
+   parser.add_argument("-gp", "--good_path", help="Good File Path")
+   parser.add_argument("-mp", "--mal_path", help="Malware File Path")
+   parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
+
+   args = parser.parse_args()
+
+   if args.good_path :
+       good_path = args.good_path
+   else :
+       print("Needs Good Path with -gp or --good_path")
+       sys.exit()
+
+   if args.mal_path :
+        mal_path = args.mal_path
+   else :
+       print("Needs Malware Path with -mp or --mal_path")
+       sys.exit()
+   if args.adverse :
+       adverse = True
+   else :
+       adverse = False
+
+   features, labels = vectorize(good_path, mal_path, adverse )
+
+   return 0
+
+
+def vectorize(good_path, mal_path, adverse):
 
     good_path = './Data/goodPermissionsFinal.txt'
     mal_path = './Data/malwarePermissionsFinal.txt'
@@ -30,80 +60,35 @@ def main():
     for x in mlprm:
         labels = np.append(labels, 1)
 
-
-
-    count_vect = CountVectorizer(input=u'content', analyzer=u'word', token_pattern='(\\b(:?uses-|optional-)?permission:\s[^\s]*)')
+    count_vect = CountVectorizer(input=u'content', analyzer=u'word',
+                                 token_pattern='(\\b(:?uses-|optional-)?permission:\s[^\s]*)')
     time0 = timeit.default_timer()
     features = count_vect.fit_transform(perms)
     features = features.todense()
     features = np.array(features)
-    inputSize = len(features)
 
-    print("Done Vectorizing Data")
-    #print 'ouput: train_ratio, epochs, batch_size, avg_acc, avg_true_pos, avg_true_neg, avg_fpos_rate, avg_fneg_rate, avg_train_time, avg_test_time'
-
-    if sys.argv[1] == 'adverse':
+    if adverse :
         print("Adversarial Learning")
-        count1=0
-        count2=0
+        count1 = 0
+        count2 = 0
         gdprmsize = np.size(gdprm, 0)
         mlprmszie = np.size(mlprm, 0)
-        for i in range(0, gdprmsize//10):
-            if labels[i] == 0 :
+        for i in range(0, gdprmsize // 10):
+            if labels[i] == 0:
                 count1 += 1
                 labels[i] = 1
         print("Good Permissions Changed: %d" % count1)
-        for i in range(gdprmsize, gdprmsize+mlprmszie//10):
-            if labels[i] == 1 :
+        for i in range(gdprmsize, gdprmsize + mlprmszie // 10):
+            if labels[i] == 1:
                 count2 += 1
                 labels[i] = 0
         print("Malware Permissions Changed: %d" % count2)
-        print("Total Permissions Changed: %d" % count1+count2)
+        print("Total Permissions Changed: %d" % count1 + count2)
+
+    print("Done Vectorizing Data")
+    return features, labels
 
 
-    # if sys.argv[1] == 'adverse':
-    #     print("Adversarial Learning")
-    #     full = np.concatenate((perms, labels))
-    #     np.random.seed(0)
-    #     np.random.shuffle(full)
-    #     copyLabels = full[:, -1]
-    #     size = np.size(copyLabels)
-    #     adverse = np.array([])
-    #
-    #     for x in range(0, size // 10):
-    #         if copyLabels[x] == 0:
-    #             adverse = np.append(adverse, 1)
-    #         else:
-    #             adverse = np.append(adverse, 1)
-    #
-    #     for x in range(size // 10 + 1, size):
-    #         adverse = np.append(adverse, copyLabels[x])
-    #
-    #     for i in [.2]:
-    #         full_run("oneLayer", features, adverse, i)
-    #         full_run("fourSame", features, adverse, i)
-    #         full_run("fourDecr", features, adverse, i)
-
-
-    # Used for grid searching
-    '''
-    print ("Grid Search for One Layer")
-    grid_search_EpochBatch("oneLayer", features, labels)
-    print "Grid Search for Binary Decreasing Layers"
-    grid_search_EpochBatch("binaryDecrease", features, labels)
-    print("Grid Search for Four equal Layers")
-    grid_search_EpochBatch("fourSame", features, labels)
-    print("Grid Search for Four Decr Layers")
-    grid_search_EpochBatch("fourDecr", features, labels)
-    '''
-    #for i in [.8, .2]:
-    #for i in [.6, .4]:
-    for i in [.8]:
-        full_run("oneLayer", features, labels, i)
-        full_run("fourSame", features, labels, i)
-        full_run("fourDecr", features, labels, i)
-
-    return 0
 
 
 def full_run(modelName, features, labels, test_ratio):
