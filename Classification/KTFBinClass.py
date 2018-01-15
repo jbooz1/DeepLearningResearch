@@ -20,7 +20,7 @@ def main():
     if args["mode"] == "grid" :
         for m in args["model"] :
             for r in args["test_ratio"] :
-                grid_search_EpochBatch(m, features, labels, r, args)
+                grid_search(m, features, labels, r, args)
 
     else :
         for m in args["model"] :
@@ -138,21 +138,17 @@ def full_run(modelName, features, labels, test_ratio, args):
     return 0
 
 
-def grid_search_EpochBatch(modelName, features, labels, test_ratio, args):
-    # This is for computing class weight
-    classes = [0, 1]
-    class_weight = compute_class_weight("balanced", classes, labels)
-    print(class_weight)
-    percent = 1 - test_ratio
-    splits = args["splits"]
-    percent = test_ratio / 100
+def grid_search(modelName, features, labels, test_ratio, args):
 
-    epochs = [16]
-    batch_size = [10]
-    neurons = [45]
-    optimizer = ['Nadam']
-    weight_constraint = [3, 4, 5]
-    dropout_rate = [0, 0.1, 0.2, 0.3]
+    splits = args["splits"]
+    percent = float(test_ratio) / 100
+
+    epochs = args["epochs"]
+    batch_size = args["batch_size"]
+    neurons = args["neurons"]
+    optimizer = args["optimizer"]
+    weight_constraint = args["weight_constraint"]
+    dropout_rate = args["dropout"]
 
     paramGrid = dict(epochs=epochs, batch_size=batch_size, optimizer=optimizer,
                      dropout_rate=dropout_rate, weight_constraint=weight_constraint,
