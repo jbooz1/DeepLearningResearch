@@ -10,7 +10,6 @@ from keras.wrappers.scikit_learn import KerasClassifier
 from sklearn.model_selection import StratifiedShuffleSplit, cross_validate, GridSearchCV
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.utils import compute_class_weight
-from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 def main():
@@ -21,19 +20,19 @@ def main():
     if args["mode"] == "grid" :
         for m in args["model"] :
             for r in args["test_ratio"] :
-                grid_search_EpochBatch(m, features, labels, r//100, args)
+                grid_search_EpochBatch(m, features, labels, r, args)
 
     else :
         for m in args["model"] :
             for r in args["test_ratio"] :
-                full_run(m, features, labels, r//100, args)
+                full_run(m, features, labels, r, args)
 
     return 0
 
 
 def vectorize(good_path, mal_path, adverse):
-    good_path = './Data/goodPermissionsFinal.txt'
-    mal_path = './Data/malwarePermissionsFinal.txt'
+    good_path = good_path
+    mal_path = mal_path
 
     with open(good_path) as f:
         gdprm = f.readlines()
@@ -71,20 +70,26 @@ def vectorize(good_path, mal_path, adverse):
                 count2 += 1
                 labels[i] = 0
         print("Malware Permissions Changed: %d" % count2)
-        print("Total Permissions Changed: %d" % count1 + count2)
+        total = count1 + count2
+        print("Total Permissions Changed: %d" % total)
 
     print("Done Vectorizing Data")
     return features, labels
 
 
 def full_run(modelName, features, labels, test_ratio, args):
-    epochs = args["epochs"]
-    batch_size = args["batch_size"]
-    neurons = args["neurons"]
-    optimizer = args["optimizer"]
-    weight_constraint = args["weight_constraint"]
-    dropout_rate = args["dropout"]//100
-    percent = (1 - test_ratio) * 100
+    epochs = args["epochs"][0]
+    batch_size = args["batch_size"][0]
+    neurons = args["neurons"][0]
+    optimizer = args["optimizer"][0]
+    weight_constraint = args["weight_constraint"][0]
+    dropout_rate = args["dropout"][0]//100
+    percent = float(test_ratio) / 100
+    splits = args["splits"]
+
+    print(splits)
+    print(features.size)
+    print(labels.size)
 
     model_params = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer,
                         weight_constraint=weight_constraint, dropout_rate=dropout_rate)
@@ -108,11 +113,11 @@ def full_run(modelName, features, labels, test_ratio, args):
                                 optimizer=optimizer, weight_constraint=weight_constraint, dropout_rate=dropout_rate,
                                 verbose=2)
 
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
+    sss = StratifiedShuffleSplit(n_splits=splits, test_size=percent, random_state=0)
     cv_result = cross_validate(model, features, labels, cv=sss, fit_params=fit_params, return_train_score=True,
                                scoring=scoring, verbose=2)
 
-    d = datetime.date.today()
+    d = datetime.datetime.today()
     month = str( '%02d' % d.month)
     day = str('%02d' % d.day)
     hour = str('%02d' % d.hour)
@@ -139,6 +144,8 @@ def grid_search_EpochBatch(modelName, features, labels, test_ratio, args):
     class_weight = compute_class_weight("balanced", classes, labels)
     print(class_weight)
     percent = 1 - test_ratio
+    splits = args["splits"]
+    percent = test_ratio / 100
 
     epochs = [16]
     batch_size = [10]
@@ -160,7 +167,7 @@ def grid_search_EpochBatch(modelName, features, labels, test_ratio, args):
     elif modelName == "fourDecr":
         model = KerasClassifier(build_fn=create_fourDecrLayer, verbose=0)
 
-    sss = StratifiedShuffleSplit(n_splits=1, test_size=test_ratio, random_state=0)
+    sss = StratifiedShuffleSplit(n_splits=splits, test_size=percent, random_state=0)
     grid = GridSearchCV(estimator=model, param_grid=paramGrid, n_jobs=1, cv=sss, refit=True, verbose=2)
     grid_fit = grid.fit(features, labels)
 
@@ -170,12 +177,11 @@ def grid_search_EpochBatch(modelName, features, labels, test_ratio, args):
 
     print("%s Best: %f using %s" % (modelName, grid_fit.best_score_, grid_fit.best_params_))
 
-    d = datetime.date.today()
+    d = datetime.datetime.today()
     month = str( '%02d' % d.month)
     day = str('%02d' % d.day)
     hour = str('%02d' % d.hour)
     min = str('%02d' % d.minute)
-
 
     df = pandas.DataFrame(grid_fit.cv_results_)
     try:
@@ -196,7 +202,7 @@ def parse_arguments():
     parser.add_argument("-mp", "--mal_path", help="Malware File Path")
     parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
     parser.add_argument("-m", "--mode", help="Choose mode: full, grid")
-    parser.add_argument("-e", "--epochs", help="Number of Epochs")
+    parser.add_argument("-e", "--epochs", help="Number of Epochs", type=int, nargs="*")
     parser.add_argument("-tr", "--test_ratio", nargs="*", type=int,
                         help="Set Test Ratios. Enter as a percent (20,40,60,80). Can be a list space delimited")
     parser.add_argument("-bs", "--batch_size", nargs="*", type=int,
@@ -210,6 +216,7 @@ def parse_arguments():
     parser.add_argument("-d", "--dropout", nargs="*", type=int,
                         help="Dropout. Enter as percent (10,20,30,40...). Can be a list space delimited.")
     parser.add_argument("-model", "--model", help="Select which model to run: all, one_layer, four_decr, four_same")
+    parser.add_argument("-s", "--splits", help="Number of Splits for SSS", type=int)
 
     args = parser.parse_args()
 
@@ -244,14 +251,20 @@ def parse_arguments():
     arguments["mode"] = mode
 
     if args.model == "all":
-        model = ["one_layer", "four_decr", "four_same"]
-    elif args.model in ["one_layer", "four_decr", "four_same"]:
-        model = args.model
+        model = ["oneLayer", "fourDecr", "fourSame"]
+    elif args.model in ["oneLayer", "fourDecr", "fourSame"]:
+        model = [args.model]
     else:
         print("Defaulting to All models")
-        model = ["one_layer", "four_decr", "four_same"]
+        model = ["oneLayer", "fourDecr", "fourSame"]
     arguments["model"] = model
 
+    if args.epochs:
+        epochs = args.epochs
+    else:
+        print("Defaulting to 16 epochs")
+        epochs = 16
+    arguments["epochs"] = epochs
     if args.test_ratio:
         test_ratio = args.test_ratio
     else:
@@ -273,8 +286,8 @@ def parse_arguments():
         neurons = 45
     arguments["neurons"] = neurons
 
-    if args.optimzer:
-        optimizer = args.optimzer
+    if args.optimizer:
+        optimizer = args.optimizer
     else:
         print("Defaulting to NADAM Optimizer")
         optimizer = "Nadam"
@@ -293,6 +306,13 @@ def parse_arguments():
         print("Defaulting to dropout of 10%")
         dropout = 10
     arguments["dropout"] = dropout
+
+    if args.splits:
+        splits = args.splits
+    else:
+        print("Defaulting to 1 SSS Split")
+        splits = 1
+    arguments["splits"] = splits
 
     return arguments
 
