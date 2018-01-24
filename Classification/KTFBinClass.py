@@ -19,12 +19,12 @@ def main():
     features, labels = vectorize(args["good_path"], args["mal_path"], args["adverse"])
     if args["mode"] == "grid" :
         for m in args["model"] :
-            for r in args["test_ratio"] :
+            for r in args["train_ratio"] :
                 grid_search(m, features, labels, r, args)
 
     else :
         for m in args["model"] :
-            for r in args["test_ratio"] :
+            for r in args["train_ratio"] :
                 full_run(m, features, labels, r, args)
 
     return 0
@@ -77,19 +77,15 @@ def vectorize(good_path, mal_path, adverse):
     return features, labels
 
 
-def full_run(modelName, features, labels, test_ratio, args):
+def full_run(modelName, features, labels, train_ratio, args):
     epochs = args["epochs"][0]
     batch_size = args["batch_size"][0]
     neurons = args["neurons"][0]
     optimizer = args["optimizer"][0]
     weight_constraint = args["weight_constraint"][0]
     dropout_rate = args["dropout"][0]//100
-    percent = float(test_ratio) / 100
+    percent = float(train_ratio) / 100
     splits = args["splits"]
-
-    print(splits)
-    print(features.size)
-    print(labels.size)
 
     model_params = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, optimizer=optimizer,
                         weight_constraint=weight_constraint, dropout_rate=dropout_rate)
@@ -125,12 +121,10 @@ def full_run(modelName, features, labels, test_ratio, args):
 
     df = pandas.DataFrame(cv_result)
     try:
-        # path1 = '/home/lab309/pythonScripts/testResults/deep_results/finalCV' + str(percent) + modelName + '.csv'
         path1 = '/home/lab309/pythonScripts/testResults/deep_results/' + modelName + month + day + hour + min + '.csv'
         file1 = open(path1, "a+")
     except:
-        # path1 = "gridSearch" + modelName + ".csv"
-        path1 = "adverse" + modelName + ".csv"
+        path1 = "results" + modelName + month + day + hour + min + ".csv"
         file1 = open(path1, "a+")
     df.to_csv(file1, index=True)
     file1.close()
@@ -138,10 +132,10 @@ def full_run(modelName, features, labels, test_ratio, args):
     return 0
 
 
-def grid_search(modelName, features, labels, test_ratio, args):
+def grid_search(modelName, features, labels, train_ratio, args):
 
     splits = args["splits"]
-    percent = float(test_ratio) / 100
+    percent = float(train_ratio) / 100
 
     epochs = args["epochs"]
     batch_size = args["batch_size"]
@@ -199,7 +193,7 @@ def parse_arguments():
     parser.add_argument("-ad", "--adverse", help="Turns on Adversarial Learning")
     parser.add_argument("-m", "--mode", help="Choose mode: full, grid")
     parser.add_argument("-e", "--epochs", help="Number of Epochs", type=int, nargs="*")
-    parser.add_argument("-tr", "--test_ratio", nargs="*", type=int,
+    parser.add_argument("-tr", "--train_ratio", nargs="*", type=int,
                         help="Set Test Ratios. Enter as a percent (20,40,60,80). Can be a list space delimited")
     parser.add_argument("-bs", "--batch_size", nargs="*", type=int,
                         help="Batch size. Can be a list space delimited")
@@ -261,12 +255,12 @@ def parse_arguments():
         print("Defaulting to 16 epochs")
         epochs = 16
     arguments["epochs"] = epochs
-    if args.test_ratio:
-        test_ratio = args.test_ratio
+    if args.train_ratio:
+        train_ratio = args.train_ratio
     else:
         print("Defaulting to testing all ratios")
-        test_ratio = [20, 40, 60, 80]
-    arguments["test_ratio"] = test_ratio
+        train_ratio = [20, 40, 60, 80]
+    arguments["train_ratio"] = train_ratio
 
     if args.batch_size:
         batch_size = args.batch_size
