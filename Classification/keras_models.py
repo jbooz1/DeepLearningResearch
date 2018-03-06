@@ -1,14 +1,14 @@
-from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.models import Sequential, Model
 from keras.constraints import maxnorm
+from keras.layers import Merge, Dense, Dropout, Input, concatenate
+from keras.optimizers import Nadam
 
-
-
-def create_one_layer(neurons=25, optimizer='adam', dropout_rate=0.0, weight_constraint=0):
+def create_one_layer(data_width, neurons=25, optimizer='adam', dropout_rate=0.0, weight_constraint=0):
     #baseline Model
     model = Sequential()
     #The first param in Dense is the number of neurons in the first hidden layer
-    model.add(Dense(neurons, input_dim=22300, kernel_initializer='normal', activation='relu',kernel_constraint=maxnorm(weight_constraint) ))
+    #model.add(Dense(neurons, input_dim=22300, kernel_initializer='normal', activation='relu',kernel_constraint=maxnorm(weight_constraint) ))
+    model.add(Dense(neurons, input_dim=data_width, kernel_initializer='normal', activation='relu'))
     model.add(Dropout(dropout_rate))
     model.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
     # Compile model
@@ -65,4 +65,34 @@ def create_binaryDecrease(neurons=25, optimizer='adam'):
     model.add(Dense(1, kernel_initializer='normal', activation='sigmoid'))
     # Compile model
     model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+    return model
+
+def create_dualInputSimple(input_ratio, feat_width, perm_width, neurons=32, dropout_rate=0.1):
+    '''this simple model performs no additional analysis after concatenation'''
+    perm_input = Input(shape=(perm_width,), name='permissions_input')
+    x = Dense(neurons, activation='relu')(perm_input)
+    feat_input = Input(shape=(feat_width,), name='features_input')
+    y = Dense(int(neurons*input_ratio), activation='relu')(feat_input)
+    x = concatenate([x, y])
+    output = Dense(1, activation='sigmoid', name='output')(x)
+    model = Model(inputs=[perm_input, feat_input], outputs=output)
+    model.compile(loss='binary_crossentropy', optimizer='nadam', metrics=['accuracy'])
+    return model
+
+def create_dualInputLarge(input_ratio, feat_width, perm_width, neurons=32, dropout_rate=0.1):
+    '''this model performs additional analysis with layers after concatenation'''
+    perm_width=int(perm_width)
+    perm_input = Input(shape=(perm_width,), name='permissions_input')
+    x = Dense(neurons, activation='relu')(perm_input)
+    x = Dropout(dropout_rate)(x)
+    x = Dense(neurons, activation='relu')(x)
+    feat_input = Input(shape=(feat_width,), name='features_input')
+    y = Dense(int(neurons*input_ratio), activation='relu')(feat_input)
+    x = concatenate([x, y])
+    x = Dense(int((neurons+(neurons*input_ratio))/2), activation='relu')(x)
+    x = Dropout(dropout_rate)(x)
+    x = Dense(int((neurons+(neurons*input_ratio))/2), activation='relu')(x)
+    output = Dense(1, activation='sigmoid', name="output")(x)
+    model = Model(inputs=[perm_input, feat_input], outputs=output)
+    model.compile(loss='binary_crossentropy', optimizer='nadam', metrics=['accuracy'])
     return model
