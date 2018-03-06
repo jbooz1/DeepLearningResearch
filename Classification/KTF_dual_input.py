@@ -97,6 +97,7 @@ def grid_search(args, perm_inputs, feat_inputs, labels):
     for m in modelName:
         for r in args["train_ratio"]:
             percent=float(r)/100
+            print percent
             sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=percent)
             for ir in input_ratios:
                 for epoch in epochs:
