@@ -84,6 +84,7 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
     batch_size = args["batch_size"]
     neurons = args["neurons"]
     modelName = args["model"]
+    spits = args["splits"]
     data = []
 
 
@@ -100,19 +101,21 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                         for size in neurons:
                             print str(r) + ' ' + str(epoch) + ' ' + str(batch)
                             cm = np.zeros([2,2], dtype=np.int64)
-                            for train_index, test_index in sss.split(perm_inputs, labels):
+                            for train_index, test_index in sss.split(perm_inputs, labels, splits=splits):
 
                                 print m
                                 if m == "oneLayer_perm":
-                                    model = create_one_layer(optimizer='nadam', data_width=perm_width)
+                                    model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=size)
                                 if m == "oneLayer_feat":
-                                    model = create_one_layer(optimizer='nadam', data_width=feat_width)
+                                    model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=size)
                                 if m == "oneLayer_comb":
-                                    model = create_one_layer(optimizer='nadam', data_width=comb_width)
+                                    model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
                                 elif m == "dual_simple":
-                                    model = create_dualInputSimple(input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
+                                    model = create_dualInputSimple(input_ratio=ir, neurons=size, \
+                                     perm_width=perm_width, feat_width=feat_width)
                                 elif m == "dual_large":
-                                    model = create_dualInputLarge(dropout_rate=.1, input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
+                                    model = create_dualInputLarge(dropout_rate=.1, neurons=32,\
+                                     input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
 
                                 perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
                                 feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
@@ -147,16 +150,16 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                             rec = calc_recall(cm)
                             f1 = calc_f1(prec, rec)
 
-                            data.append(dict(zip(["model_name", "neurons", "train_ratio", "epochs", "batch_size", \
-                                "accuracy", "precision", "recall", "f1_score"],\
+                            data.append(dict(zip(["model_name", "neurons", "train_ratio", "input_ratio", \
+                                "epochs", "batch_size", "accuracy", "precision", "recall", "f1_score"], \
                                 [m, size, r, ir, epoch, batch, acc, prec, rec, f1])))
 
 
 
-    save_results(data, m)
+    save_results(data)
     return
 
-def save_results(data, modelName):
+def save_results(data):
     d = datetime.datetime.today()
     month = str( '%02d' % d.month)
     day = str('%02d' % d.day)
@@ -165,12 +168,12 @@ def save_results(data, modelName):
 
     df = pd.DataFrame(data)
     try:
-        path1 = '/home/jmcgiff/Documents/research/multi_results/' + modelName + month + day + hour + min + '.csv'
+        path1 = '/home/jmcgiff/Documents/research/multi_results/test-' + month + day + hour + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
         file1 = open(path1, "w+")
-    df.to_csv(file1, index=True)
+    df.to_csv(file1, index=False)
     file1.close()
 
     return 0
@@ -256,12 +259,12 @@ def parse_arguments():
         model = ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
          "dual_large", "dual_simple"]
     elif args.model in ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
-     "dual_inputLarge", "dual_inputSimple"]:
+     "dual_large", "dual_simple"]:
         model = [args.model]
     else:
         print("Defaulting to All models")
         model = ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
-         "dual_inputLarge", "dual_inputSimple"]
+         "dual_large", "dual_simple"]
     arguments["model"] = model
 
     if args.epochs:
@@ -288,7 +291,7 @@ def parse_arguments():
         neurons = args.neurons
     else:
         print("Defaulting to 45 Neurons")
-        neurons = [45]
+        neurons = [32]
     arguments["neurons"] = neurons
 
     if args.optimizer:
@@ -315,8 +318,8 @@ def parse_arguments():
     if args.splits:
         splits = args.splits
     else:
-        print("Defaulting to 1 SSS Split")
-        splits = [1]
+        print("Defaulting to 10 SSS Split")
+        splits = [10]
     arguments["splits"] = splits
 
     if args.input_ratio:
