@@ -1,6 +1,6 @@
 import numpy as np
 import timeit
-import pandas
+import pandas as pd
 import datetime
 import argparse
 
@@ -22,18 +22,12 @@ def main():
 
     args = parse_arguments()
 
-    perm_inputs, feat_inputs, labels = vectorize(args["good_path"], args["mal_path"])
+    perm_inputs, feat_inputs, comb_inputs, labels = vectorize(args["good_path"], args["mal_path"])
     perm_width = len(perm_inputs[0])
     feat_width = len(feat_inputs[0])
+    comb_width = len(comb_inputs[0])
 
-    grid_search(args, perm_inputs, feat_inputs, labels)
-    return
-    #comb_width = len(comb_inputs[0])
-
-    avg = 0
-    for x in split_acc:
-        avg+=x
-    print 'avg acc is :' + str(avg/5)
+    grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels)
 
     return
 
@@ -58,7 +52,7 @@ def vectorize(good_path, mal_path):
 
     perm_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=perm_pattern))
     feat_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=feat_pattern))
-    #comb_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=comb_pattern))
+    comb_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=comb_pattern))
 
     time0 = timeit.default_timer()
     perm_inputs_sparse = perm_vect.fit_transform(samples)
@@ -69,13 +63,13 @@ def vectorize(good_path, mal_path):
     feat_inputs_dense = feat_inputs_sparse.todense()
     feat_inputs = np.array(feat_inputs_dense)
 
-    #comb_inputs_sparse = comb_vect.fit_transform(samples)
-    #comb_inputs_dense = comb_inputs_sparse.todense()
-    #comb_inputs = np.array(comb_inputs_dense)
+    comb_inputs_sparse = comb_vect.fit_transform(samples)
+    comb_inputs_dense = comb_inputs_sparse.todense()
+    comb_inputs = np.array(comb_inputs_dense)
 
-    return perm_inputs, feat_inputs, labels
+    return perm_inputs, feat_inputs, comb_inputs, labels
 
-def grid_search(args, perm_inputs, feat_inputs, labels):
+def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
     '''
     The below method is a modified implementation of the gridsearch method in
     KTFBinClass.py that manually iterates through all params via nested loops
@@ -83,76 +77,95 @@ def grid_search(args, perm_inputs, feat_inputs, labels):
     '''
     perm_width = int(len(perm_inputs[0]))
     feat_width = int(len(feat_inputs[0]))
-    print type(perm_width)
+    comb_width = int(len(comb_inputs[0]))
     input_ratios = args["input_ratio"]
     splits = args["splits"]
     epochs = args["epochs"]
     batch_size = args["batch_size"]
     neurons = args["neurons"]
     modelName = args["model"]
-    print modelName
+    data = []
 
 
 
     for m in modelName:
+        print m
         for r in args["train_ratio"]:
             percent=float(r)/100
             print percent
-            sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=percent)
+            sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=1-percent)
             for ir in input_ratios:
                 for epoch in epochs:
                     for batch in batch_size:
                         for size in neurons:
                             print str(r) + ' ' + str(epoch) + ' ' + str(batch)
+                            cm = np.zeros([2,2], dtype=np.int64)
                             for train_index, test_index in sss.split(perm_inputs, labels):
+
                                 print m
-                                if m == "oneLayer":
-                                    print 'here'
+                                if m == "oneLayer_perm":
                                     model = create_one_layer(optimizer='nadam', data_width=perm_width)
+                                if m == "oneLayer_feat":
+                                    model = create_one_layer(optimizer='nadam', data_width=feat_width)
+                                if m == "oneLayer_comb":
+                                    model = create_one_layer(optimizer='nadam', data_width=comb_width)
                                 elif m == "dual_simple":
-                                    model = create_dualInputSimple(input_ratio=.125, perm_width=perm_width, feat_width=feat_width)
+                                    model = create_dualInputSimple(input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
                                 elif m == "dual_large":
-                                    model = create_dualInputLarge(dropout_rate=.1, input_ratio=.125, perm_width=perm_width, feat_width=feat_width)
+                                    model = create_dualInputLarge(dropout_rate=.1, input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
 
                                 perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
                                 feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
+                                comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
                                 labels_train, labels_test = labels[train_index], labels[test_index]
-                                if m != "oneLayer":
-                                    print "multi_input: " + str(m)
-                                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
-                                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
 
-                                elif m == "oneLayer":
+                                if m == "oneLayer_perm":
                                     print "single_input: " + str(m)
                                     model.fit(perm_train, labels_train, epochs=epoch, batch_size=batch)
                                     labels_pred = model.predict(perm_test, batch_size=batch)
 
+                                elif m == "oneLayer_feat":
+                                    print "single_input: " + str(m)
+                                    model.fit(feat_train, labels_train, epochs=epoch, batch_size=batch)
+                                    labels_pred = model.predict(feat_test, batch_size=batch)
+
+                                elif m == "oneLayer_comb":
+                                    print "single_input: " + str(m)
+                                    model.fit(comb_train, labels_train, epochs=epoch, batch_size=batch)
+                                    labels_pred = model.predict(comb_test, batch_size=batch)
+
+                                else:
+                                    print "multi_input: " + str(m)
+                                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
+                                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
+
+
                                 labels_pred = (labels_pred > 0.5)
-                                cm = confusion_matrix(labels_test, labels_pred)
-                                print "acc: " + str(float((cm[0][0] + cm[1][1]))/len(labels_pred))
+                                cm = cm + confusion_matrix(labels_test, labels_pred)
+                            acc = calc_accuracy(cm)
+                            prec = calc_precision(cm)
+                            rec = calc_recall(cm)
+                            f1 = calc_f1(prec, rec)
+
+                            data.append(dict(zip(["model_name", "neurons", "train_ratio", "epochs", "batch_size", \
+                                "accuracy", "precision", "recall", "f1_score"],\
+                                [m, size, r, ir, epoch, batch, acc, prec, rec, f1])))
 
 
 
-
-                                #split_acc = np.append(split_acc, model.evaluate([perm_test, feat_test], labels_test)[1])
-                                #comb_train, comb_test, = comb_inputs[train_index], comb_inputs[test_index]
-                                #model.fit(comb_train, labels_train, epochs=8, batch_size=64)
-                                #split_acc = np.append(split_acc, model.evaluate(comb_test, labels_test)[1])
-
+    save_results(data, m)
     return
 
-
-    print("%s Best: %f using %s" % (modelName, grid_fit.best_score_, grid_fit.best_params_))
-
+def save_results(data, modelName):
     d = datetime.datetime.today()
     month = str( '%02d' % d.month)
     day = str('%02d' % d.day)
     hour = str('%02d' % d.hour)
     min = str('%02d' % d.minute)
 
-    df = pandas.DataFrame(grid_fit.cv_results_)
+    df = pd.DataFrame(data)
     try:
-        path1 = '/home/lab309/pythonScripts/testResults/deep_results/gridSearch' + modelName + month + day + hour + min + '.csv'
+        path1 = '/home/jmcgiff/Documents/research/multi_results/' + modelName + month + day + hour + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
@@ -161,6 +174,26 @@ def grid_search(args, perm_inputs, feat_inputs, labels):
     file1.close()
 
     return 0
+
+def calc_accuracy(cm):
+    TP = float(cm[1][1])
+    TN = float(cm[0][0])
+    n_samples = cm.sum()
+    return (TP+TN)/n_samples
+
+def calc_precision(cm):
+    TP = float(cm[1][1])
+    FP = float(cm[0][1])
+    return TP/(TP+FP)
+
+def calc_recall(cm):
+    TP = float(cm[1][1])
+    FN = float(cm[1][0])
+    return TP/(FN+TP)
+
+def calc_f1(precision, recall):
+    return 2*((precision*recall)/(precision+recall))
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -220,12 +253,15 @@ def parse_arguments():
     arguments["mode"] = mode
 
     if args.model == "all":
-        model = ["oneLayer", "dual_simple", "dual_large"]
-    elif args.model in ["oneLayer", "fourDecr", "fourSame", "dual_inputLarge", "dual_inputSimple"]:
+        model = ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
+         "dual_large", "dual_simple"]
+    elif args.model in ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
+     "dual_inputLarge", "dual_inputSimple"]:
         model = [args.model]
     else:
         print("Defaulting to All models")
-        model = ["oneLayer", "fourDecr", "fourSame"]
+        model = ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb", \
+         "dual_inputLarge", "dual_inputSimple"]
     arguments["model"] = model
 
     if args.epochs:
