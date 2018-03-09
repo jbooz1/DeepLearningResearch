@@ -85,43 +85,43 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
     neurons = args["neurons"]
     modelName = args["model"]
     spits = args["splits"]
-    data = []
+    single=None
 
 
 
     for m in modelName:
-        print m
+
+        data = []
+        if m in ["oneLayer_perm", "oneLayer_feat", "oneLayer_comb"]:
+            print 'single bool set'
+            single = True
+        else:
+            single = False
+
         for r in args["train_ratio"]:
             percent=float(r)/100
             print percent
             sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=1-percent)
-            for ir in input_ratios:
-                for epoch in epochs:
-                    for batch in batch_size:
-                        for size in neurons:
-                            print str(r) + ' ' + str(epoch) + ' ' + str(batch)
-                            cm = np.zeros([2,2], dtype=np.int64)
-                            for train_index, test_index in sss.split(perm_inputs, labels, splits=splits):
+            for epoch in epochs:
+                for batch in batch_size:
+                    for size in neurons:
+                        cm = np.zeros([2,2], dtype=np.int64)
 
-                                print m
-                                if m == "oneLayer_perm":
-                                    model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=size)
-                                if m == "oneLayer_feat":
-                                    model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=size)
-                                if m == "oneLayer_comb":
-                                    model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
-                                elif m == "dual_simple":
-                                    model = create_dualInputSimple(input_ratio=ir, neurons=size, \
-                                     perm_width=perm_width, feat_width=feat_width)
-                                elif m == "dual_large":
-                                    model = create_dualInputLarge(dropout_rate=.1, neurons=32,\
-                                     input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
+                        if m == "oneLayer_perm":
+                            model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=size)
+                        elif m == "oneLayer_feat":
+                            model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=size)
+                        elif m == "oneLayer_comb":
+                            model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
 
+                        if(single):
+                            for train_index, test_index in sss.split(perm_inputs, labels):
                                 perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
                                 feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
                                 comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
                                 labels_train, labels_test = labels[train_index], labels[test_index]
 
+                                print str(m) + ' ' + str(r) + ' ' + str(epoch) + ' ' + str(batch) + ' ' + str(size)
                                 if m == "oneLayer_perm":
                                     print "single_input: " + str(m)
                                     model.fit(perm_train, labels_train, epochs=epoch, batch_size=batch)
@@ -136,30 +136,56 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                                     print "single_input: " + str(m)
                                     model.fit(comb_train, labels_train, epochs=epoch, batch_size=batch)
                                     labels_pred = model.predict(comb_test, batch_size=batch)
-
-                                else:
-                                    print "multi_input: " + str(m)
-                                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
-                                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
-
-
                                 labels_pred = (labels_pred > 0.5)
                                 cm = cm + confusion_matrix(labels_test, labels_pred)
                             acc = calc_accuracy(cm)
                             prec = calc_precision(cm)
                             rec = calc_recall(cm)
                             f1 = calc_f1(prec, rec)
-
+                            ir = 0
                             data.append(dict(zip(["model_name", "neurons", "train_ratio", "input_ratio", \
+                            "epochs", "batch_size", "accuracy", "precision", "recall", "f1_score"], \
+                            [m, size, r, ir, epoch, batch, acc, prec, rec, f1])))
+
+                        else:
+                            print 'ENTERED ELSE - MULTI'
+
+                            for ir in input_ratios:
+                                if m == "dual_simple":
+                                    model = create_dualInputSimple(input_ratio=ir, neurons=size, \
+                                    perm_width=perm_width, feat_width=feat_width)
+                                elif m == "dual_large":
+                                    model = create_dualInputLarge(dropout_rate=.1, neurons=size,\
+                                    input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
+
+                                for train_index, test_index in sss.split(perm_inputs, labels):
+                                    perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
+                                    feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
+                                    comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
+                                    labels_train, labels_test = labels[train_index], labels[test_index]
+
+                                    print "multi_input: " + str(m)
+                                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
+                                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
+
+
+                                    labels_pred = (labels_pred > 0.5)
+                                    cm = cm + confusion_matrix(labels_test, labels_pred)
+                                acc = calc_accuracy(cm)
+                                prec = calc_precision(cm)
+                                rec = calc_recall(cm)
+                                f1 = calc_f1(prec, rec)
+
+                                data.append(dict(zip(["model_name", "neurons", "train_ratio", "input_ratio", \
                                 "epochs", "batch_size", "accuracy", "precision", "recall", "f1_score"], \
                                 [m, size, r, ir, epoch, batch, acc, prec, rec, f1])))
 
 
-
-    save_results(data)
+        print 'saving results for model: ' + str(m)
+        save_results(data, m)
     return
 
-def save_results(data):
+def save_results(data, modelName):
     d = datetime.datetime.today()
     month = str( '%02d' % d.month)
     day = str('%02d' % d.day)
@@ -168,7 +194,7 @@ def save_results(data):
 
     df = pd.DataFrame(data)
     try:
-        path1 = '/home/jmcgiff/Documents/research/multi_results/test-' + month + day + hour + min + '.csv'
+        path1 = '/home/jmcgiff/Documents/research/multi_results/march9/' + modelName + month + day + '-' + hour + ':' + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
