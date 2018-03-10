@@ -107,13 +107,6 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                     for size in neurons:
                         cm = np.zeros([2,2], dtype=np.int64)
 
-                        if m == "oneLayer_perm":
-                            model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=size)
-                        elif m == "oneLayer_feat":
-                            model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=size)
-                        elif m == "oneLayer_comb":
-                            model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
-
                         if(single):
                             print 'model: ' + str(m) + ' tr: ' + str(r) + ' epochs: ' + str(epoch) + ' bs: ' \
                             + str(batch) + ' n: ' + str(size)
@@ -122,6 +115,13 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                                 feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
                                 comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
                                 labels_train, labels_test = labels[train_index], labels[test_index]
+
+                                if m == "oneLayer_perm":
+                                    model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=size)
+                                elif m == "oneLayer_feat":
+                                    model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=size)
+                                elif m == "oneLayer_comb":
+                                    model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
 
                                 if m == "oneLayer_perm":
                                     print "single_input: " + str(m)
