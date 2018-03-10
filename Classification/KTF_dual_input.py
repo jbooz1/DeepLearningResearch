@@ -115,13 +115,14 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                             model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=size)
 
                         if(single):
+                            print 'model: ' + str(m) + ' tr: ' + str(r) + ' epochs: ' + str(epoch) + ' bs: ' \
+                            + str(batch) + ' n: ' + str(size)
                             for train_index, test_index in sss.split(perm_inputs, labels):
                                 perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
                                 feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
                                 comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
                                 labels_train, labels_test = labels[train_index], labels[test_index]
 
-                                print str(m) + ' ' + str(r) + ' ' + str(epoch) + ' ' + str(batch) + ' ' + str(size)
                                 if m == "oneLayer_perm":
                                     print "single_input: " + str(m)
                                     model.fit(perm_train, labels_train, epochs=epoch, batch_size=batch)
@@ -151,18 +152,21 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                             print 'ENTERED ELSE - MULTI'
 
                             for ir in input_ratios:
-                                if m == "dual_simple":
-                                    model = create_dualInputSimple(input_ratio=ir, neurons=size, \
-                                    perm_width=perm_width, feat_width=feat_width)
-                                elif m == "dual_large":
-                                    model = create_dualInputLarge(dropout_rate=.1, neurons=size,\
-                                    input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
-
+                                print 'model: ' + str(m) + ' tr: ' + str(r) + ' epochs: ' + str(epoch) + ' bs: ' \
+                                + str(batch) + ' n: ' + str(size)
                                 for train_index, test_index in sss.split(perm_inputs, labels):
                                     perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
                                     feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
                                     comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
                                     labels_train, labels_test = labels[train_index], labels[test_index]
+
+
+                                    if m == "dual_simple":
+                                        model = create_dualInputSimple(input_ratio=ir, neurons=size, \
+                                        perm_width=perm_width, feat_width=feat_width)
+                                    elif m == "dual_large":
+                                        model = create_dualInputLarge(dropout_rate=.1, neurons=size,\
+                                        input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
 
                                     print "multi_input: " + str(m)
                                     model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
