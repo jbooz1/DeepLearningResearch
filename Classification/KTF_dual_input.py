@@ -27,7 +27,12 @@ def main():
     feat_width = len(feat_inputs[0])
     comb_width = len(comb_inputs[0])
 
-    grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels)
+
+    if args["mode"] == "final":
+        print "final test all models and training ratios"
+        final_test(args, perm_inputs, feat_inputs, comb_inputs, labels)
+    else:
+        grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels)
 
     return
 
@@ -68,6 +73,124 @@ def vectorize(good_path, mal_path):
     comb_inputs = np.array(comb_inputs_dense)
 
     return perm_inputs, feat_inputs, comb_inputs, labels
+
+def final_test(args, perm_inputs, feat_inputs, comb_inputs, labels):
+    perm_width = int(len(perm_inputs[0]))
+    feat_width = int(len(feat_inputs[0]))
+    comb_width = int(len(comb_inputs[0]))
+    print 'perm width: ' + str(perm_width)
+    input_ratios = args["input_ratio"]
+    models = args["model"]
+    size = 32
+
+
+
+    #models = {'oneLayer_comb':oneLayer_comb, 'oneLayer_perm':oneLayer_perm, \
+    #'oneLayer_feat':oneLayer_feat, 'dual_simple':dual_simple, 'dual_large':dual_large}
+    #models = ('oneLayer_comb', 'oneLayer_feat', 'oneLayer_perm', 'dual_simple', 'dual_large')
+
+    for m in models:
+        print m
+        data = []
+        for r in args["train_ratio"]:
+            percent=float(r)/100
+            sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=1-percent)
+            cm = np.zeros([2,2], dtype=np.int64)
+            train_time = 0.0
+            test_time = 0.0
+            ir = 0
+            for train_index, test_index in sss.split(perm_inputs, labels):
+                perm_train, perm_test = perm_inputs[train_index], perm_inputs[test_index]
+                feat_train, feat_test = feat_inputs[train_index], feat_inputs[test_index]
+                comb_train, comb_test = comb_inputs[train_index], comb_inputs[test_index]
+                labels_train, labels_test = labels[train_index], labels[test_index]
+
+                if m == "oneLayer_comb":
+                    print 'oneLayer_comb'
+                    model = create_one_layer(optimizer='nadam', data_width=comb_width, neurons=32)
+                    epoch = 32
+                    batch = 32
+                    time0 = timeit.default_timer()
+                    model.fit(comb_train, labels_train, epochs=epoch, batch_size=batch)
+                    time1 = timeit.default_timer()
+                    labels_pred = model.predict(comb_test, batch_size=batch)
+                    time2 = timeit.default_timer()
+
+                elif m == "oneLayer_perm":
+                    print 'oneLayer_perm'
+                    model = create_one_layer(optimizer='nadam', data_width=perm_width, neurons=32)
+                    batch = 32
+                    epoch = 16
+                    time0 = timeit.default_timer()
+                    model.fit(perm_train, labels_train, epochs=epoch, batch_size=batch)
+                    time1 = timeit.default_timer()
+                    print time1-time0
+                    labels_pred = model.predict(perm_test, batch_size=batch)
+                    time2 = timeit.default_timer()
+                    print time2-time1
+
+                elif m == "oneLayer_feat":
+                    print 'oneLayer_feat'
+                    model = create_one_layer(optimizer='nadam', data_width=feat_width, neurons=32)
+                    batch = 16
+                    epoch = 32
+                    time0 = timeit.default_timer()
+                    model.fit(feat_train, labels_train, epochs=epoch, batch_size=batch)
+                    time1 = timeit.default_timer()
+                    labels_pred = model.predict(feat_test, batch_size = batch)
+                    time2 = timeit.default_timer()
+
+                elif m == "dual_simple":
+                    print 'dual_simple'
+                    model = create_dualInputSimple(input_ratio=.125, neurons=32, perm_width=perm_width, feat_width=feat_width)
+                    batch = 16
+                    epoch = 32
+                    ir = .125
+                    print("args: batch=%i, epochs=%i, ir=%f, perm_width=%i, feat_width=%i" % (batch, epoch, ir, perm_width, feat_width))
+                    print type(perm_width)
+                    print type(feat_width)
+                    model = create_dualInputSimple(input_ratio=ir, neurons=size, \
+                    perm_width=2750, feat_width=feat_width)
+                    time0 = timeit.default_timer()
+                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
+                    time1 = timeit.default_timer()
+                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
+                    time2 = timeit.default_timer()
+
+                elif m == "dual_large":
+                    print 'dual_large'
+                    model = create_dualInputLarge(input_ratio=.125, neurons=32, perm_width=perm_width, feat_width=feat_width)
+                    batch = 128
+                    epoch = 32
+                    ir = .125
+                    model = create_dualInputLarge(dropout_rate=.1, neurons=size,\
+                    input_ratio=ir, perm_width=perm_width, feat_width=feat_width)
+                    time0 = timeit.default_timer()
+                    model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
+                    time1 = timeit.default_timer()
+                    labels_pred = model.predict([perm_test, feat_test], batch_size=batch)
+                    time2 = timeit.default_timer()
+
+
+                train_time += time1-time0
+                test_time += time2-time1
+                labels_pred = (labels_pred > 0.5)
+                cm = cm + confusion_matrix(labels_test, labels_pred)
+            acc = calc_accuracy(cm)
+            prec = calc_precision(cm)
+            rec = calc_recall(cm)
+            f1 = calc_f1(prec, rec)
+            avg_train_time = train_time/5
+            avg_test_time = test_time/5
+
+            data.append(dict(zip(["model_name", "neurons", "train_ratio", "input_ratio", \
+            "epochs", "batch_size", "accuracy", "precision", "recall", "f1_score", \
+            "avg_train_time", "avg_test_time"], \
+            [m, size, r, ir, epoch, batch, acc, prec, rec, f1, avg_train_time, avg_test_time])))
+
+
+        print 'saving results for model: ' + str(m)
+        save_results(data, m)
 
 def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
     '''
@@ -162,6 +285,7 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
 
 
                                     if m == "dual_simple":
+                                        print("args: batch=%i, epochs=%i, ir=%f, perm_width=%i, feat_width=%i" % (batch, epoch, ir, perm_width, feat_width))
                                         model = create_dualInputSimple(input_ratio=ir, neurons=size, \
                                         perm_width=perm_width, feat_width=feat_width)
                                     elif m == "dual_large":
@@ -198,7 +322,7 @@ def save_results(data, modelName):
 
     df = pd.DataFrame(data)
     try:
-        path1 = '/home/jmcgiff/Documents/research/multi_results/march9/' + modelName + month + day + '-' + hour + ':' + min + '.csv'
+        path1 = '/home/jmcgiff/Documents/research/multi_results/final/testing/' + modelName + month + day + '-' + hour + ':' + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
@@ -281,7 +405,7 @@ def parse_arguments():
         mode = "grid"
         print("Mode is %s" % mode)
     else:
-        mode = "full"
+        mode = "final"
         print("Mode is %s" % mode)
     arguments["mode"] = mode
 
@@ -320,7 +444,7 @@ def parse_arguments():
     if args.neurons:
         neurons = args.neurons
     else:
-        print("Defaulting to 45 Neurons")
+        print("Defaulting to 32 Neurons")
         neurons = [32]
     arguments["neurons"] = neurons
 
@@ -348,8 +472,8 @@ def parse_arguments():
     if args.splits:
         splits = args.splits
     else:
-        print("Defaulting to 10 SSS Split")
-        splits = [10]
+        print("Defaulting to 5 SSS Split")
+        splits = [5]
     arguments["splits"] = splits
 
     if args.input_ratio:
