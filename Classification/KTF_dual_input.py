@@ -150,7 +150,7 @@ def final_test(args, perm_inputs, feat_inputs, comb_inputs, labels):
                     print type(perm_width)
                     print type(feat_width)
                     model = create_dualInputSimple(input_ratio=ir, neurons=size, \
-                    perm_width=2750, feat_width=feat_width)
+                    perm_width=perm_width, feat_width=feat_width)
                     time0 = timeit.default_timer()
                     model.fit([perm_train, feat_train], labels_train, epochs=epoch, batch_size=batch)
                     time1 = timeit.default_timer()
@@ -322,7 +322,7 @@ def save_results(data, modelName):
 
     df = pd.DataFrame(data)
     try:
-        path1 = '/home/jmcgiff/Documents/research/multi_results/final/testing/' + modelName + month + day + '-' + hour + ':' + min + '.csv'
+        path1 = '/home/hduser/DeepLearningResearch/Results/deepResults/multi_input/final_test/' + modelName + month + day + '-' + hour + ':' + min + '.csv'
         file1 = open(path1, "w+")
     except:
         path1 = "gridSearch" + modelName + ".csv"
