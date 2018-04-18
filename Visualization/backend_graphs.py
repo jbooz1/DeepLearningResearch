@@ -24,7 +24,6 @@ def main():
     fourDecr_theanoTime = fourDecr_theano.get("fit_time")/60
     fourDecr_theanoAcc = fourDecr_theano.get("test_accuracy")
 
-
     oneLayer_in = open("../Results/deepResults/AggregationCharts/oneLayerDifferentBackends.csv")
     oneLayer_df = pandas.read_csv(oneLayer_in)
 
@@ -62,45 +61,45 @@ def main():
     fourSame_theanoAcc = fourSame_theano.get("test_accuracy")
 
     plt.figure(1)
-    plt.plot(fourDecr_tensorX, fourDecr_tensorTime, marker='s', color='r', label='Four Decr - Tensor Flow')
-    plt.plot(fourSame_tensorX, fourSame_tensorTime, marker='^', color='b', label='Four Same - Tensor Flow')
-    plt.plot(oneLayer_tensorX, oneLayer_tensorTime, marker='*', color='g', label='One Layer - Tensor Flow')
+    plt.plot(oneLayer_cntkX, oneLayer_cntkTime, linestyle='--', marker='*', color='g', linewidth=3, markersize=13,label='One Layer - CNTK')
+    plt.plot(oneLayer_tensorX, oneLayer_tensorTime, marker='*', color='g', linewidth=3, markersize=13,label='One Layer - Tensor Flow')
+    plt.plot(oneLayer_theanoX, oneLayer_theanoTime, linestyle=':', marker='*', color='g',linewidth=3, markersize=13, label='One Layer - Theano')
 
-    plt.plot(fourDecr_cntkX, fourDecr_cntkTime, linestyle='--', marker='s', color='r', label='Four Decr - CNTK')
-    plt.plot(fourSame_cntkX, fourSame_cntkTime, linestyle='--', marker='^', color='b', label='Four Same - CNTK')
-    plt.plot(oneLayer_cntkX, oneLayer_cntkTime, linestyle='--', marker='*', color='g', label='One Layer - CNTK')
+    plt.plot(fourSame_cntkX, fourSame_cntkTime, linestyle='--', marker='^', color='b',linewidth=3, markersize=13, label='Four Same - CNTK')
+    plt.plot(fourSame_theanoX, fourSame_theanoTime, linestyle=':', marker='^', color='b',linewidth=3, markersize=13, label='Four Same - Theano')
+    plt.plot(fourSame_tensorX, fourSame_tensorTime, marker='^', color='b', linewidth=3, markersize=13,label='Four Same - Tensor Flow')
 
-    plt.plot(fourDecr_theanoX, fourDecr_theanoTime, linestyle=':', marker='s', color='r', label='Four Decr - Theano')
-    plt.plot(fourSame_theanoX, fourSame_theanoTime, linestyle=':', marker='^', color='b', label='Four Same - Theano')
-    plt.plot(oneLayer_theanoX, oneLayer_theanoTime, linestyle=':', marker='*', color='g', label='One Layer - Theano')
+    plt.plot(fourDecr_cntkX, fourDecr_cntkTime, linestyle='--', marker='s', color='r', linewidth=3, markersize=13,label='Four Decr - CNTK')
+    plt.plot(fourDecr_tensorX, fourDecr_tensorTime, marker='s', color='r', linewidth=3, markersize=13,label='Four Decr - Tensor Flow')
+    plt.plot(fourDecr_theanoX, fourDecr_theanoTime, linestyle=':', marker='s', color='r', linewidth=3, markersize=13,label='Four Decr - Theano')
 
-    plt.legend(loc='upper left', fontsize=10)
+    # plot formatting
+    plt.legend(loc='upper left', fontsize=18)
     plt.xticks(np.arange(20, 100, 20))
-    plt.xlabel('Training Ratio', fontsize=15)
-    plt.ylabel('Training Time (Minutes)', fontsize=15)
-    plt.tick_params(labelsize=15)
+    plt.xlabel('Training Ratio', fontsize=20)
+    plt.ylabel('Training Time (Minutes)', fontsize=20)
+    plt.tick_params(labelsize=20)
     plt.grid()
 
     plt.figure(2)
-    plt.plot(fourDecr_tensorX, fourDecr_tensorAcc, marker='s', color='r', label='Four Decr - Tensor Flow')
-    plt.plot(fourSame_tensorX, fourSame_tensorAcc, marker='^', color='b', label='Four Same - Tensor Flow')
-    plt.plot(oneLayer_tensorX, oneLayer_tensorAcc, marker='*', color='g', label='One Layer - Tensor Flow')
+    plt.plot(oneLayer_cntkX, oneLayer_cntkAcc, linestyle='--', marker='*', color='g',linewidth=3, markersize=13, label='One Layer - CNTK')
+    plt.plot(oneLayer_tensorX, oneLayer_tensorAcc, marker='*', color='g',linewidth=3, markersize=13, label='One Layer - Tensor Flow')
+    plt.plot(oneLayer_theanoX, oneLayer_theanoAcc, linestyle=':', marker='*', linewidth=3, markersize=13,color='g', label='One Layer - Theano')
 
-    plt.plot(fourDecr_cntkX, fourDecr_cntkAcc, linestyle='--', marker='s', color='r', label='Four Decr - CNTK')
-    plt.plot(fourSame_cntkX, fourSame_cntkAcc, linestyle='--', marker='^', color='b', label='Four Same - CNTK')
-    plt.plot(oneLayer_cntkX, oneLayer_cntkAcc, linestyle='--', marker='*', color='g', label='One Layer - CNTK')
+    plt.plot(fourSame_cntkX, fourSame_cntkAcc, linestyle='--', marker='^', color='b', linewidth=3, markersize=13,label='Four Same - CNTK')
+    plt.plot(fourSame_tensorX, fourSame_tensorAcc, marker='^', color='b',linewidth=3, markersize=13, label='Four Same - Tensor Flow')
+    plt.plot(fourSame_theanoX, fourSame_theanoAcc, linestyle=':', marker='^', color='b', linewidth=3, markersize=13,label='Four Same - Theano')
 
-    plt.plot(fourDecr_theanoX, fourDecr_theanoAcc, linestyle=':', marker='s', color='r', label='Four Decr - Theano')
-    plt.plot(fourSame_theanoX, fourSame_theanoAcc, linestyle=':', marker='^', color='b', label='Four Same - Theano')
-    plt.plot(oneLayer_theanoX, oneLayer_theanoAcc, linestyle=':', marker='*', color='g', label='One Layer - Theano')
-
+    plt.plot(fourDecr_cntkX, fourDecr_cntkAcc, linestyle='--', marker='s', color='r',linewidth=3, markersize=13, label='Four Decr - CNTK')
+    plt.plot(fourDecr_tensorX, fourDecr_tensorAcc, marker='s', color='r', linewidth=3, markersize=13,label='Four Decr - Tensor Flow')
+    plt.plot(fourDecr_theanoX, fourDecr_theanoAcc, linestyle=':', marker='s', color='r', linewidth=3, markersize=13,label='Four Decr - Theano')
 
     # plot formatting
-    plt.legend(loc='upper left', fontsize=10)
+    plt.legend(loc='lower right', fontsize=18)
     plt.xticks(np.arange(20, 100, 20))
-    plt.xlabel('Training Ratio', fontsize=15)
-    plt.ylabel('Accuracy', fontsize=15)
-    plt.tick_params(labelsize=15)
+    plt.xlabel('Training Ratio', fontsize=20)
+    plt.ylabel('Accuracy', fontsize=20)
+    plt.tick_params(labelsize=20)
     plt.grid()
     plt.show()
 
