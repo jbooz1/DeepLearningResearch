@@ -1,10 +1,6 @@
 import pandas
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from mpl_toolkits.mplot3d import axes3d
-from matplotlib import cm
-from pylab import meshgrid
-import numpy as np
+
 
 def main():
     nadam_in = open("neuronsOptimoneLayer/neurons_acc_nadam.csv", 'r')
@@ -45,23 +41,23 @@ def main():
     SGD_neurons = SGD_df.get("param_neurons")
     SGD_score = SGD_df.get("mean_test_score")
 
-
-
+    plt.figure(1)
     #create line for each optimizer
-    adadelta = plt.plot(adadelta_neurons, adadelta_score, marker='*', markersize=16, label='adadelta')
-    adamax = plt.plot(adamax_neurons, adamax_score ,marker='o', markersize=16, label='adamax')
-    adam = plt.plot(adam_neurons, adam_score, marker='v', markersize=16, label='adam')
-    nadam = plt.plot(nadam_neurons, nadam_score, marker='^', markersize=16, label='nadam')
-    RMSprop = plt.plot(RMS_neurons, RMS_score, marker='s', markersize=16, label='RMSprop')
-    SGD = plt.plot(SGD_neurons, SGD_score, marker='p', markersize=16, label='SGD')
+    plt.plot(adadelta_neurons, adadelta_score, marker='*', linewidth=3, markersize=13,label='adadelta')
+    plt.plot(adamax_neurons, adamax_score ,marker='o', linewidth=3, markersize=13,label='adamax')
+    plt.plot(adam_neurons, adam_score, marker='v',linewidth=3, markersize=13, label='adam')
+    plt.plot(nadam_neurons, nadam_score, marker='^', linewidth=3, markersize=13,label='nadam')
+    plt.plot(RMS_neurons, RMS_score, marker='s',linewidth=3, markersize=13, label='RMSprop')
+    plt.plot(SGD_neurons, SGD_score, marker='p',linewidth=3, markersize=13, label='SGD')
 
     #plot formatting
-    plt.legend(loc='upper left', fontsize = 20)
-    plt.ylim([.92, .95])
+    plt.legend(loc='upper left', fontsize = 18)
+    #plt.ylim([.92, .95])
     #plt.title('One Layer Model - Optimizer and Neurons', fontsize=28)
-    plt.xlabel('Neurons', fontsize = 26)
-    plt.ylabel('Accuracy', fontsize = 26)
+    plt.xlabel('Neurons', fontsize = 20)
+    plt.ylabel('Accuracy', fontsize = 20)
     plt.tick_params(labelsize=20)
+    plt.grid()
     #plt.legend([adadelta, adamax, adam, RMSprop, SGD]) #['adadelta', 'adamax', 'adam','nadam', 'RMSprop,', 'SGD'])
 
 
