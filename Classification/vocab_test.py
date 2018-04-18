@@ -39,25 +39,35 @@ def vectorize(good_path, old_ben, mal_path, old_mal):
     comb_pattern = "(?:\w|\.)+(?:hardware|permission).(?:\w|\.)+"
     old_pattern =  "(\\b(:?uses-|optional-)?permission:\s[^\s]*)"
 
-    new_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=perm_pattern))
+    new_perm_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=perm_pattern))
     old_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=old_pattern))
-    #comb_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=comb_pattern))
+    comb_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=comb_pattern))
+    feat_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=feat_pattern))
+
 
     time0 = timeit.default_timer()
-    new_inputs = new_vect.fit_transform(new_samples)
+    new_perms = new_perm_vect.fit_transform(new_samples)
+    feats = feat_vect.fit_transform(new_samples)
+    comb = comb_vect.fit_transform(new_samples)
 
-    old_inputs = old_vect.fit_transform(old_samples)
 
-    print "new perms vocab:" + str(new_inputs.shape)
-    print "old perms vocab:" + str(old_inputs.shape)
 
-    old_vocab_out = open('/home/jmcgiff/Documents/research/DeepLearningResearch/Data/vocab_files/old_vocab.txt', "w+")
-    new_vocab_out = open('/home/jmcgiff/Documents/research/DeepLearningResearch/Data/vocab_files/new_vocab.txt', "w+")
+    #old_inputs = old_vect.fit_transform(old_samples)
 
-    for x in new_vect.get_feature_names():
-        new_vocab_out.write("%s\n" % str(x))
-    for x in old_vect.get_feature_names():
-        old_vocab_out.write("%s\n" % str(x))
+    print "new perms vocab:" + str(new_perms.shape)
+    print "comb vocab: " + str(comb.shape)
+    print "feat vocab: " + str(feats.shape)
+    #print "old perms vocab:" + str(old_inputs.shape)
+
+
+
+    #old_vocab_out = open('/home/jmcgiff/Documents/research/DeepLearningResearch/Data/vocab_files/old_vocab.txt', "w+")
+    #new_vocab_out = open('/home/jmcgiff/Documents/research/DeepLearningResearch/Data/vocab_files/new_vocab.txt', "w+")
+
+    #for x in new_vect.get_feature_names():
+#        new_vocab_out.write("%s\n" % str(x))
+#    for x in old_vect.get_feature_names():
+#        old_vocab_out.write("%s\n" % str(x))
     return
 
 if __name__ == "__main__":
