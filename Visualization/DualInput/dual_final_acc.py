@@ -17,11 +17,11 @@ def main():
     print 'results_path: ' + results_path
 
      #= open("neuronsOptimoneLayer/neurons_acc_nadam.csv", 'r')
-    dual_simple_in = open(os.path.join(results_path, 'dual_simple0327-08:43.csv'), 'r')
-    dual_large_in = open(os.path.join(results_path, 'dual_large0327-01:37.csv'), 'r')
-    oneLayer_feat_in = open(os.path.join(results_path, 'oneLayer_feat0326-17:56.csv'), 'r')
-    oneLayer_perm_in = open(os.path.join(results_path, 'oneLayer_perm0326-16:34.csv'), 'r')
-    oneLayer_comb_in = open(os.path.join(results_path, 'oneLayer_comb0326-23:15.csv'), 'r')
+    dual_simple_in = open(os.path.join(results_path, 'dual_simple0327-0843.csv'), 'r')
+    dual_large_in = open(os.path.join(results_path, 'dual_large0327-0137.csv'), 'r')
+    oneLayer_feat_in = open(os.path.join(results_path, 'oneLayer_feat0326-1756.csv'), 'r')
+    oneLayer_perm_in = open(os.path.join(results_path, 'oneLayer_perm0326-1634.csv'), 'r')
+    oneLayer_comb_in = open(os.path.join(results_path, 'oneLayer_comb0326-2315.csv'), 'r')
 
     dual_simple_df = pandas.read_csv(dual_simple_in)
     dual_large_df = pandas.read_csv(dual_large_in)
