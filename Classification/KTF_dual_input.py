@@ -37,6 +37,10 @@ def main():
     return
 
 def vectorize(good_path, mal_path):
+    '''
+    accepts the filepath to the benign and malicious data files. Then tokenizes
+    according to regular expressions below and creates matching labels.
+    '''
 
     with open(good_path) as f:
         ben_samples = f.readlines()
@@ -51,6 +55,7 @@ def vectorize(good_path, mal_path):
     for x in mal_samples:
         labels = np.append(labels, 1)
 
+    #regular expressions for each desired data type
     perm_pattern = "(?:\w|\.)+(?:permission).(?:\w|\.)+"
     feat_pattern = "(?:\w|\.)+(?:hardware).(?:\w|\.)+"
     comb_pattern = "(?:\w|\.)+(?:hardware|permission).(?:\w|\.)+"
@@ -60,6 +65,7 @@ def vectorize(good_path, mal_path):
     comb_vect = CountVectorizer(analyzer=partial(regexp_tokenize, pattern=comb_pattern))
 
     time0 = timeit.default_timer()
+    #each vectorizer tokenizes via fit_transform() and then is converted to a dense vector
     perm_inputs_sparse = perm_vect.fit_transform(samples)
     perm_inputs_dense = perm_inputs_sparse.todense()
     perm_inputs = np.array(perm_inputs_dense)
@@ -75,6 +81,10 @@ def vectorize(good_path, mal_path):
     return perm_inputs, feat_inputs, comb_inputs, labels
 
 def final_test(args, perm_inputs, feat_inputs, comb_inputs, labels):
+    '''
+    performs final test and validation across each train ratio on hardcoded
+    hyperparemeter values established by the gridsearch
+    '''
     perm_width = int(len(perm_inputs[0]))
     feat_width = int(len(feat_inputs[0]))
     comb_width = int(len(comb_inputs[0]))
@@ -94,6 +104,7 @@ def final_test(args, perm_inputs, feat_inputs, comb_inputs, labels):
         data = []
         for r in args["train_ratio"]:
             percent=float(r)/100
+            #stratified shuffle split used for cross validation
             sss = StratifiedShuffleSplit(n_splits=5, random_state=0, test_size=1-percent)
             cm = np.zeros([2,2], dtype=np.int64)
             train_time = 0.0
@@ -272,6 +283,7 @@ def grid_search(args, perm_inputs, feat_inputs, comb_inputs, labels):
                             [m, size, r, ir, epoch, batch, acc, prec, rec, f1])))
 
                         else:
+                            #else block added to include input_ratio as parameter for dual_input models
                             print 'ENTERED ELSE - MULTI'
 
                             for ir in input_ratios:
