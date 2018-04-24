@@ -7,12 +7,10 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, advanced_activations
 
 
-
-
 def main():
-    print("Main")
-
+    # Get input args
     args = parse_arguments()
+
     # Init random seed for reproducibility
     np.random.seed(0)
 
@@ -20,26 +18,28 @@ def main():
     dataframe = pandas.read_csv(args["data_path"], engine='python', parse_dates=['DATE'],
                                 date_parser=lambda x: pandas.to_datetime(x, infer_datetime_format=True))
 
-    print()
-
+    # Define the training set using the input begin and end dates
     train_df= dataframe[(dataframe['DATE'] >= datetime.datetime(args["begin_train"],1,1)) &
                         (dataframe['DATE'] <= datetime.datetime(args["end_train"],12,31))]
 
+    # Define the testing set using the input begin and end dates
     test_df = dataframe[(dataframe['DATE'] >= datetime.datetime(args["begin_test"],1,1)) &
                         (dataframe['DATE'] <= datetime.datetime(args["end_test"],12,31))]
 
 
-
+    # Remove null and other invalid entries in the data
     train_data = np.nan_to_num(train_df['TAVG'].values.astype('float32'))
     test_data = np.nan_to_num(test_df['TAVG'].values.astype('float32'))
 
+    # Combine the data to one array
     combined_data = np.append(train_data, test_data)
 
     # reshape dataset to window matrix
-    look_back = 12
+    look_back = 12  # This is the size of the window
     trainX, trainY = create_dataset(train_data, look_back)
     testX, testY = create_dataset(test_data, look_back)
 
+    # Define and fit the model
     model = create_model(look_back=look_back)
     model.fit(trainX, trainY, epochs=500, batch_size=12, verbose=2)
 
@@ -63,11 +63,11 @@ def main():
     testPredictPlot[:] = np.nan
     testPredictPlot[len(trainPredict) + (look_back * 2) + 1:len(combined_data) - 1] = testPredict
 
+    # Combine the results
     combined_df = train_df.append(test_df)
     combined_dates = combined_df['DATE']
 
     # plot baseline and predictions
-
     plt.plot(combined_dates, combined_data, )
     plt.plot(combined_dates, trainPredictPlot)
     plt.plot(combined_dates, testPredictPlot)
@@ -75,6 +75,7 @@ def main():
     plt.show()
 
 
+# Standard Model Creation
 def create_model(look_back):
     # create and fit Multilayer Perceptron model
     model = Sequential()
@@ -87,6 +88,7 @@ def create_model(look_back):
     model.compile(loss='mean_absolute_error', optimizer='nadam')
     return model
 
+
 # convert an array of values into a dataset matrix
 def create_dataset(dataset, look_back=1):
     dataX, dataY = [], []
@@ -97,6 +99,7 @@ def create_dataset(dataset, look_back=1):
     return np.array(dataX), np.array(dataY)
 
 
+# Command Line Arguments are parsed here
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("-dp", "--data_path", help="Data File Path")
@@ -244,8 +247,6 @@ def parse_arguments():
     arguments["end_test"] = end_test
 
     return arguments
-
-
 
 
 if __name__ == "__main__":
