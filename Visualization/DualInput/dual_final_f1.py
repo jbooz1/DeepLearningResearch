@@ -46,15 +46,15 @@ def main():
     ol_perm_f1 = oneLayer_perm_df.get("f1_score")
 
     #oneLayer_comb x and y
-    ol_comb_ratio = oneLayer_perm_df.get("train_ratio")
-    ol_comb_f1 = oneLayer_perm_df.get("f1_score")
+    ol_comb_ratio = oneLayer_comb_df.get("train_ratio")
+    ol_comb_f1 = oneLayer_comb_df.get("f1_score")
 
     #create line for each optimizer
-    dual_simple = plt.plot(ds_ratio, ds_f1, marker='*', markersize=16, label='dual_simple')
-    dual_large = plt.plot(dl_ratio, dl_f1, marker='o', markersize=16, label='dual_large')
-    ol_feat = plt.plot(ol_feat_ratio, ol_feat_f1, marker='v', markersize=16, label='one_layer_features')
-    ol_perm = plt.plot(ol_perm_ratio, ol_perm_f1, marker='^', markersize=16, label='one_layer_permissions')
-    ol_comb = plt.plot(ol_comb_ratio, ol_comb_f1, marker='s', markersize=16, label='one_layer_combined')
+    dual_simple = plt.plot(ds_ratio, ds_f1, marker='*', markersize=12, label='dual_simple')
+    dual_large = plt.plot(dl_ratio, dl_f1, marker='o', markersize=12, label='dual_large')
+    ol_feat = plt.plot(ol_feat_ratio, ol_feat_f1, marker='v', markersize=12, label='one_layer_features')
+    ol_perm = plt.plot(ol_perm_ratio, ol_perm_f1, marker='^', markersize=12, label='one_layer_permissions')
+    ol_comb = plt.plot(ol_comb_ratio, ol_comb_f1, marker='s', markersize=12, label='one_layer_combined')
 
     #adam = plt.plot(adam_neurons, adam_score, marker='v', markersize=16, label='adam')
     #nadam = plt.plot(nadam_neurons, nadam_score, marker='^', markersize=16, label='nadam')
@@ -64,7 +64,7 @@ def main():
     #plot formatting
     plt.legend(loc='upper left', fontsize = 16)
     plt.ylim([.65,1])
-    plt.title('Model F1 Score and Training Ratio', fontsize=28)
+    plt.title('F1 Score and Training Ratio', fontsize=28)
     plt.xlabel('Training Ratio', fontsize = 26)
     plt.ylabel('F1 Score', fontsize = 26)
     plt.tick_params(labelsize=20)

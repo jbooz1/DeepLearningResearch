@@ -2,7 +2,6 @@ import pandas
 import os
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib.font_manager import FontProperties
 from mpl_toolkits.mplot3d import axes3d
 from matplotlib import cm
 from pylab import meshgrid
@@ -29,41 +28,44 @@ def main():
     oneLayer_perm_df = pandas.read_csv(oneLayer_perm_in)
     oneLayer_comb_df = pandas.read_csv(oneLayer_comb_in)
 
-
     #dual_simple x and y
     ds_ratio = dual_simple_df.get("train_ratio")
-    ds_f1 = dual_simple_df.get("accuracy")
+    ds_tt = dual_simple_df.get("avg_train_time")
 
     #dual_large x and y
     dl_ratio = dual_large_df.get("train_ratio")
-    dl_f1 = dual_large_df.get("accuracy")
+    dl_tt = dual_large_df.get("avg_train_time")
 
     #oneLayer_feat x and y
     ol_feat_ratio = oneLayer_feat_df.get("train_ratio")
-    ol_feat_f1 = oneLayer_feat_df.get("accuracy")
+    ol_feat_tt = oneLayer_feat_df.get("avg_train_time")
 
     #oneLayer_perm x and y
     ol_perm_ratio = oneLayer_perm_df.get("train_ratio")
-    ol_perm_f1 = oneLayer_perm_df.get("accuracy")
+    ol_perm_tt = oneLayer_perm_df.get("avg_train_time")
 
     #oneLayer_comb x and y
     ol_comb_ratio = oneLayer_comb_df.get("train_ratio")
-    ol_comb_f1 = oneLayer_comb_df.get("accuracy")
+    ol_comb_tt = oneLayer_comb_df.get("avg_train_time")
 
     #create line for each optimizer
-    dual_simple = plt.plot(ds_ratio, ds_f1, marker='*', markersize=12, label='dual_simple')
-    dual_large = plt.plot(dl_ratio, dl_f1, marker='o', markersize=12, label='dual_large')
-    ol_feat = plt.plot(ol_feat_ratio, ol_feat_f1, marker='v', markersize=12, label='one_layer_features')
-    ol_perm = plt.plot(ol_perm_ratio, ol_perm_f1, marker='^', markersize=12, label='one_layer_permissions')
-    ol_comb = plt.plot(ol_comb_ratio, ol_comb_f1, marker='s', markersize=12, label='one_layer_combined')
+    dual_simple = plt.plot(ds_ratio, ds_tt, marker='*', markersize=12, label='dual_simple')
+    dual_large = plt.plot(dl_ratio, dl_tt, marker='o', markersize=12, label='dual_large')
+    ol_feat = plt.plot(ol_feat_ratio, ol_feat_tt, marker='v', markersize=12, label='one_layer_features')
+    ol_perm = plt.plot(ol_perm_ratio, ol_perm_tt, marker='^', markersize=12, label='one_layer_permissions')
+    ol_comb = plt.plot(ol_comb_ratio, ol_comb_tt, marker='s', markersize=12, label='one_layer_combined')
 
+    #adam = plt.plot(adam_neurons, adam_score, marker='v', markersize=16, label='adam')
+    #nadam = plt.plot(nadam_neurons, nadam_score, marker='^', markersize=16, label='nadam')
+    #RMSprop = plt.plot(RMS_neurons, RMS_score, marker='s', markersize=16, label='RMSprop')
+    #SGD = plt.plot(SGD_neurons, SGD_score, marker='p', markersize=16, label='SGD')
 
     #plot formatting
     plt.legend(loc='upper left', fontsize = 16)
-    plt.ylim([.75, 1])
-    plt.title('Accuracy and Training Ratio', fontsize=28)
-    plt.xlabel('Training Ratio', fontsize = 26)
-    plt.ylabel('Accuracy', fontsize = 26)
+    plt.ylim([0,2500])
+    plt.title('Average Time to Train', fontsize=28)
+    plt.xlabel('Training Ratio (%)', fontsize = 26)
+    plt.ylabel('Time (s)', fontsize = 26)
     plt.tick_params(labelsize=20)
     #plt.legend([adadelta, adamax, adam, RMSprop, SGD]) #['adadelta', 'adamax', 'adam','nadam', 'RMSprop,', 'SGD'])
 
