@@ -57,6 +57,10 @@ def vectorize(good_path, old_ben, mal_path, old_mal):
     print "new perms vocab:" + str(new_perms.shape)
     print "comb vocab: " + str(comb.shape)
     print "feat vocab: " + str(feats.shape)
+
+    perm_inputs_sparse = perm_vect.fit_transform(samples)
+    perm_inputs_dense = perm_inputs_sparse.todense()
+    comb_inputs = np.array(perm_inputs_dense)
     #print "old perms vocab:" + str(old_inputs.shape)
 
 
